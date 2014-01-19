@@ -30,7 +30,7 @@ class pic18fj: public Pic{
 
 		void enter_program_mode(void);
 		void exit_program_mode(void);
-		void read_device_id(void);
+		bool read_device_id(void);
 		void bulk_erase(void);
 		void dump_configuration_registers(void);
 		void read(char *outfile, uint32_t start, uint32_t count);

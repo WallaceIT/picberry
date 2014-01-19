@@ -21,9 +21,16 @@
 #include <stdint.h>
 #include <string.h>
 #include <iostream>
+#include <unistd.h>
 
 #include "common.h"
 #include "dspic.h"
+
+#if defined(BOARD_A10)
+#include "a10.h"
+#elif defined(BOARD_RPI)
+#include "rpi.h"
+#endif
 
 using namespace std;
 
@@ -196,11 +203,13 @@ void dspic::exit_program_mode(void)
 	delay_us(DELAY_P16);
 	GPIO_CLR(pic_mclr);		/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);	/* wait (at least) P17 */
+	cerr << "Press any key to exit program mode...";
+	fgetc(stdin);
 	GPIO_IN(pic_mclr);      /* MCLR as input, puts the output driver in Hi-Z */
 }
 
 /* read the device ID and revision; returns only the id */
-void dspic::read_device_id(void)
+bool dspic::read_device_id(void)
 {
 	bool found = 0;
 
@@ -246,11 +255,11 @@ void dspic::read_device_id(void)
 	}
 
 	if (found == 0){
-		cerr << "ERROR: unknown/unsupported device"
+		cerr << "ERROR: unknown/unsupported device "
 				"or programmer not connected." << endl;
-		exit(1);
 	}
 
+	return found;
 
 }
 

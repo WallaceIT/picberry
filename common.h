@@ -21,25 +21,11 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+/* define BOARD_A10 for Allwinner A10, or BOARD_RPI for RaspberryPi */
+#define BOARD_RPI
+//#define BOARD_A10
+
 using namespace std;
-
-/* GPIO registers address */
-#define BCM2708_PERI_BASE  0x20000000
-#define GPIO_BASE          (BCM2708_PERI_BASE + 0x200000) /* GPIO controller */
-#define BLOCK_SIZE         (256)
-
-/* GPIO setup macros. Always use GPIO_IN(x) before using GPIO_OUT(x) */
-#define GPIO_IN(g)    *(gpio+((g)/10))   &= ~(7<<(((g)%10)*3))
-#define GPIO_OUT(g)   *(gpio+((g)/10))   |=  (1<<(((g)%10)*3))
-
-#define GPIO_SET(g)   *(gpio+7)  = 1<<(g)
-#define GPIO_CLR(g)   *(gpio+10) = 1<<(g)
-#define GPIO_LEV(g)   (*(gpio+13) >> (g)) & 0x1	/* reads pin level */
-
-/* default GPIO <-> PIC connections */
-#define DEFAULT_PIC_CLK    23	/* PGC - Output */
-#define DEFAULT_PIC_DATA   24	/* PGD - I/O */
-#define DEFAULT_PIC_MCLR   18	/* MCLR - Output */
 
 #define VERSION 0.1
 
@@ -68,7 +54,7 @@ class Pic{
 
 		virtual void enter_program_mode(void) = 0;
 		virtual void exit_program_mode(void) = 0;
-		virtual void read_device_id(void) = 0;
+		virtual bool read_device_id(void) = 0;
 		virtual void bulk_erase(void) = 0;
 		virtual void dump_configuration_registers(void) = 0;
 		virtual void read(char *outfile, uint32_t start, uint32_t count) = 0;
@@ -77,7 +63,7 @@ class Pic{
 };
 
 /* Low-level functions */
-void delay_us (unsigned int howLong);
+void delay_us(unsigned int howLong);
 void setup_io(void);
 void close_io(void);
 

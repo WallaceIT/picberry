@@ -18,6 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -35,6 +37,13 @@
 #include "common.h"
 #include "dspic.h"
 #include "pic18fj.h"
+
+#if defined(BOARD_A10)
+#include "a10.h"
+#elif defined(BOARD_RPI)
+#include "rpi.h"
+#endif
+
 
 using namespace std;
 
@@ -145,6 +154,7 @@ int main(int argc, char *argv[])
 	   cerr << "PGD connected to pin " << pic_data << endl;
 	   cerr << "MCLR connected to pin " << pic_mclr << endl;
 	}
+
 	GPIO_IN(pic_clk); 	// NOTE: MUST use GPIO_IN before GPIO_OUT
 	GPIO_OUT(pic_clk);
 
@@ -155,6 +165,7 @@ int main(int argc, char *argv[])
 
 	GPIO_CLR(pic_clk);
 	GPIO_CLR(pic_data);
+
 	delay_us(1);      	// sleep for 1us after GPIO configuration
 
 	if(function == 0x80){
@@ -176,31 +187,31 @@ int main(int argc, char *argv[])
 	/* ENTER PROGRAM MODE */
 	pic[family_index] -> enter_program_mode();
 
-	pic[family_index] -> read_device_id();	// Read devide ID and setup memory
+	if(pic[family_index] -> read_device_id())	// Read devide ID and setup memory
 
-	switch (function){
-		case 0x00:			// no function selected, exit
-			break;
-		case 0x01:
-			pic[family_index]->read(outfile,start,count);
-			break;
-		case 0x02:
-			pic[family_index]->write(infile);
-			break;
-		case 0x04:
-			pic[family_index]->bulk_erase();
-			break;
-		case 0x08:
-			pic[family_index]->blank_check();
-			break;
-		case 0x10:
-			pic[family_index]->dump_configuration_registers();
-			break;
-		default:
-			cerr << endl << endl << "Please select only one option" <<
-			"between -d, -b, -r, -w, -e." << endl;
-			break;
-	};
+		switch (function){
+			case 0x00:			// no function selected, exit
+				break;
+			case 0x01:
+				pic[family_index]->read(outfile,start,count);
+				break;
+			case 0x02:
+				pic[family_index]->write(infile);
+				break;
+			case 0x04:
+				pic[family_index]->bulk_erase();
+				break;
+			case 0x08:
+				pic[family_index]->blank_check();
+				break;
+			case 0x10:
+				pic[family_index]->dump_configuration_registers();
+				break;
+			default:
+				cerr << endl << endl << "Please select only one option" <<
+				"between -d, -b, -r, -w, -e." << endl;
+				break;
+		};
 
 	pic[family_index]->exit_program_mode();
 	close_io();
@@ -221,7 +232,7 @@ void setup_io(void)
         }
 
         /* mmap GPIO */
-        gpio_map = mmap(NULL, BLOCK_SIZE, PROT_READ|PROT_WRITE,
+        gpio_map = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE,
         				MAP_SHARED, mem_fd, GPIO_BASE);
         if (gpio_map == MAP_FAILED) {
                 perror("mmap() failed");

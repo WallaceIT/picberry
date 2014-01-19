@@ -20,10 +20,18 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include <iostream>
 
 #include "common.h"
 #include "pic18fj.h"
+
+#if defined(BOARD_A10)
+#include "a10.h"
+#elif defined(BOARD_RPI)
+#include "rpi.h"
+#endif
+
 
 using namespace std;
 
@@ -197,7 +205,7 @@ void pic18fj::goto_mem_location(uint32_t data)
 }
 
 /* Read PIC device id word, located at 0x3FFFFE:0x3FFFFF */
-void pic18fj::read_device_id(void)
+bool pic18fj::read_device_id(void)
 {
 	uint16_t id;
 	bool found = 0;
@@ -228,8 +236,9 @@ void pic18fj::read_device_id(void)
 
 	if (found == 0){
 		cerr << "Error: unknown/unsupported device or programmer not connected." << endl;
-		exit(1);
 	}
+
+	return found;
 }
 
 /* Bulk erase the chip */

@@ -1,4 +1,4 @@
-Raspberry Pi PIC Programmer using GPIO connector
+Raspberry Pi/Allwinner A10 PIC Programmer using GPIO connector
 
 Copyright 2014 Francesco Valla
 
@@ -10,14 +10,14 @@ You should have received a copy of the GNU General Public License along with thi
 
 # Overview
 
-picberry is a Raspberry Pi PIC programmer using GPIOs that doesn't require additional programming hardware.
+picberry is a Raspberry Pi/Allwinner A10 PIC programmer using GPIOs that doesn't require additional programming hardware.
 It theorically supports dsPIC33F/PIC24H and PIC18FxxJxx families, but only dsPIC33FJ128GP802 has been tested.
 
 # Building and Installing picberry
 
 picberry is written in C++11, so it requires g++ version 4.7.
 
-On the Raspberry Pi install it entering:
+On Raspian/Debian install it entering:
 
 	sudo apt-get install g++-4.7
 
@@ -36,7 +36,7 @@ To change destination prefix use PREFIX=, e.g.
 	sudo make install PREFIX=/usr/local
 
 
-Compilation is possible either on the RPi or in a cross-build environment.
+Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment.
 
 # Usage of picberry
 
@@ -70,14 +70,22 @@ For Example, to connect the PIC to GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write 
 To use picberry you will need only the "recommended minimum connections" outlined in each PIC datasheet (avoiding the cap on MCLR).
 
 Between PIC and RPi you must have the four basic ICSP lines: PGC (clock), PGD (data), MCLR (Reset), GND.
-You can also connect PIC VDD line to Raspberry Pi 3v3 line, but be careful: Raspberry Pi 3v3 pins have only 50mA of current capability, so consider your circuit current drawn!
+You can also connect PIC VDD line to Raspberry Pi/Allwinner A10 3v3 line, but be careful: Raspberry Pi/Allwinner A10 3v3 pins have only 50mA of current capability, so consider your circuit current drawn!
 
-If not specified in the command line, the default GPIOs <-> PIC connections are:
+If not specified in the command line, the default GPIOs <-> PIC connections for the Raspberry Pi are:
 
 	PGC  <-> GPIO23
 	PGD  <-> GPIO24
 	MCLR <-> GPIO18
+	
+and for the Allwinner A10
 
+	PGC  <-> PD4
+	PGD  <-> PD5
+	MCLR <-> PD1
+	
+PLEASE NOTE: currently picberry can use only PORTD[0:7] on A10!
+	
 # References
 
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
@@ -88,6 +96,7 @@ If not specified in the command line, the default GPIOs <-> PIC connections are:
 picberry is released under the GPLv3 license; for full license see the `LICENSE` file.
 
 The Microchip name and logo, PIC, In-Circuit Serial Programming, ICSP are registered trademarks of Microchip Technology Incorporated in the U.S.A. and other countries.
+Raspberry Pi is a trademark of The Raspberry Pi Foundation
 
 
 
