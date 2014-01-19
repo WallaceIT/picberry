@@ -21,11 +21,12 @@ On Raspian/Debian install it entering:
 
 	sudo apt-get install g++-4.7
 
-To build picberry, after cloning the repository, just enter in its directory and launch
+To build picberry, after cloning the repository, first select the target processor by defining either BOARD_RPI (default) or BOARD_A10 in common.h
+Then launch
 
 	make
 
-and then
+and
 	
 	sudo make install
 
