@@ -2,15 +2,21 @@
 # picberry Makefile
 # 
 #
-CC = g++-4.7
+CC = g++
 CFLAGS  = -Wall -O2 -s -std=c++11
 TARGET = picberry
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
 
-default: picberry
+GCCVERSIONG := $(shell expr `gcc -dumpversion | cut -f2 -d.` \>= 7)
 
-picberry:  inhx.o dspic.o pic18fj.o picberry.o
+ifeq "$(GCCVERSION)" "0"
+    CC = g++-4.7
+endif
+
+default: all
+
+all:  inhx.o dspic.o pic18fj.o picberry.o
 	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic.o pic18fj.o
 
 inhx.o:  inhx.cpp common.h
