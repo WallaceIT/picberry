@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	short family_index=1;
 	uint32_t count = 0, start = 0;
 
-	cout << "Raspberry Pi PIC Programmer ver. " << VERSION << endl;
+	cout << "picberry PIC Programmer ver. " << VERSION << endl;
 
 	while ((opt = getopt(argc, argv, "hDg:i:o:c:s:f:rwebdR")) != -1) {
 		switch (opt) {
@@ -281,7 +281,7 @@ void pic_reset(void)
 void usage(void)
 {
 	cerr <<
-"Usage: rpdspic [options]" << endl << endl <<
+"Usage: picberry [options]" << endl << endl <<
 "   Programming Options" << endl << endl <<
 "       -h                print help" << endl <<
 "       -D                turn ON debug" << endl <<

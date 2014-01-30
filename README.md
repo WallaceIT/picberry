@@ -37,7 +37,7 @@ To change destination prefix use PREFIX=, e.g.
 	sudo make install PREFIX=/usr/local
 
 
-Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment.
+Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment, using g++ 4.7.
 
 # Usage of picberry
 
@@ -48,7 +48,7 @@ Programming Options
 	-h                print help
 	-D                turn ON debug
 	-g PGC,PGD,MCLR   GPIO selection, default if not present
-	-f family	  PIC family (dspic or 18fj)
+	-f family	  	  PIC family (dspic or 18fj)
 	-i file           input file
 	-o file           output file (default: ofile.hex)
 
@@ -70,7 +70,7 @@ For Example, to connect the PIC to GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write 
 
 To use picberry you will need only the "recommended minimum connections" outlined in each PIC datasheet (avoiding the cap on MCLR).
 
-Between PIC and RPi you must have the four basic ICSP lines: PGC (clock), PGD (data), MCLR (Reset), GND.
+Between PIC and the SoC you must have the four basic ICSP lines: PGC (clock), PGD (data), MCLR (Reset), GND.
 You can also connect PIC VDD line to Raspberry Pi/Allwinner A10 3v3 line, but be careful: Raspberry Pi/Allwinner A10 3v3 pins have only 50mA of current capability, so consider your circuit current drawn!
 
 If not specified in the command line, the default GPIOs <-> PIC connections for the Raspberry Pi are:
@@ -81,11 +81,11 @@ If not specified in the command line, the default GPIOs <-> PIC connections for 
 	
 and for the Allwinner A10
 
-	PGC  <-> PD4
-	PGD  <-> PD5
-	MCLR <-> PD1
+	PGC  <-> PB15
+	PGD  <-> PB17
+	MCLR <-> PB12
 	
-PLEASE NOTE: currently picberry can use only PORTD[0:7] on A10!
+PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't set the port using a command line option (yet?).
 	
 # References
 
