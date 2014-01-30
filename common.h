@@ -25,6 +25,12 @@
 #define BOARD_RPI
 //#define BOARD_A10
 
+#if defined(BOARD_A10)
+#include "a10.h"
+#elif defined(BOARD_RPI)
+#include "rpi.h"
+#endif
+
 using namespace std;
 
 #define VERSION 0.1

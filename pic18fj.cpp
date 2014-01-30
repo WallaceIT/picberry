@@ -26,15 +26,6 @@
 #include "common.h"
 #include "pic18fj.h"
 
-#if defined(BOARD_A10)
-#include "a10.h"
-#elif defined(BOARD_RPI)
-#include "rpi.h"
-#endif
-
-
-using namespace std;
-
 /* delays (in microseconds) */
 #define DELAY_P1   	1
 #define DELAY_P2   	1

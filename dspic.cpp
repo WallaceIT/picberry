@@ -26,14 +26,6 @@
 #include "common.h"
 #include "dspic.h"
 
-#if defined(BOARD_A10)
-#include "a10.h"
-#elif defined(BOARD_RPI)
-#include "rpi.h"
-#endif
-
-using namespace std;
-
 /* delays (in microseconds; nanoseconds are rounded to 1us) */
 #define DELAY_P1   		1		// 200ns
 #define DELAY_P1A		1		// 80ns

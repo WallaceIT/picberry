@@ -38,15 +38,6 @@
 #include "dspic.h"
 #include "pic18fj.h"
 
-#if defined(BOARD_A10)
-#include "a10.h"
-#elif defined(BOARD_RPI)
-#include "rpi.h"
-#endif
-
-
-using namespace std;
-
 int                	mem_fd;
 void              	*gpio_map;
 volatile uint32_t	*gpio;
