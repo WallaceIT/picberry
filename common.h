@@ -21,8 +21,11 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
-/* define BOARD_A10 for Allwinner A10, or BOARD_RPI for RaspberryPi */
-#define BOARD_RPI
+/*
+ * Define BOARD_A10 for Allwinner A10, or BOARD_RPI for RaspberryPi
+ * (normally commented out because defined in makefile)
+ */
+//#define BOARD_RPI
 //#define BOARD_A10
 
 #if defined(BOARD_A10)
