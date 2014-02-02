@@ -206,9 +206,12 @@ bool pic18fj::read_device_id(void)
 	send_cmd(COMM_TABLE_READ_POST_INC);
 	id = read_data();
 	send_cmd(COMM_TABLE_READ_POST_INC);
-	id = ( read_data() << 8) | (id & 0xFF) ;
+	id = ( read_data() << 8) | (id & 0xE0) ;
 
 	device_id = id;
+
+	if(debug)
+		fprintf(stderr,"Device ID: 0x%x\n", device_id );
 
 	for (unsigned short i=0;i < sizeof(piclist)/sizeof(piclist[0]);i++){
 
@@ -243,6 +246,7 @@ void pic18fj::bulk_erase(void)
 	send_cmd(COMM_CORE_INSTRUCTION);
 	write_data(0x0000);                 /* NOP */
 	send_cmd(COMM_CORE_INSTRUCTION);
+	write_data(0x0000);                 /* NOP */
 	GPIO_CLR(pic_data);	                /* Hold PGD low until erase completes. */
 	delay_us(DELAY_P11);
 	delay_us(DELAY_P10);
@@ -290,7 +294,9 @@ void pic18fj::write(char *infile)
 
 	read_inhx(infile, &mem);
 
-	cerr << "Writing chip...";
+	bulk_erase();
+
+	cerr << "Writing chip";
 
 	send_cmd(COMM_CORE_INSTRUCTION);
 	write_data(0x84A6);			/* enable writes */
@@ -318,7 +324,6 @@ void pic18fj::write(char *infile)
 			if (debug) fprintf(stderr, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(mem.location[addr+31]);
-
 		}
 		else {
 			if (debug) fprintf(stderr, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
@@ -335,18 +340,20 @@ void pic18fj::write(char *infile)
 		                GPIO_CLR(pic_clk);
 		                delay_us(DELAY_P2A);       /* Hold time */
 		        }
-		        GPIO_SET(pic_clk);
-		        delay_us(DELAY_P9);        /* Programming time */
-		        GPIO_CLR(pic_clk);
-		        delay_us(DELAY_P5);
-		        write_data(0x0000);
+		GPIO_SET(pic_clk);
+		delay_us(DELAY_P9);        /* Programming time */
+		GPIO_CLR(pic_clk);
+		delay_us(DELAY_P5);
+		write_data(0x0000);
 		/* end of Programming Sequence */
+		if(!(addr%320))
+			cerr << ".";
 	};
 
 	cerr << "DONE!" << endl;
 
 	/* Verify Code Memory and Configuration Word */
-	cerr << "Verifying written data..." << endl;
+	cerr << "Verifying written data";
 
 	goto_mem_location(0x000000);
 
@@ -363,6 +370,8 @@ void pic18fj::write(char *infile)
 			fprintf(stderr, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...", addr*2, data, mem.location[addr]);
 			break;
 		}
+		if(!(addr%320))
+			cerr << ".";
 	}
 
 	cerr << "DONE!" << endl;
@@ -375,7 +384,7 @@ void pic18fj::blank_check(void)
 	uint16_t addr, data;
 	uint8_t blank = 1;
 
-	cerr << "Performing Blank Check..." << endl;
+	cerr << "Performing Blank Check...";
 
 	goto_mem_location(0x000000);
 
