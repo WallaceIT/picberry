@@ -279,13 +279,13 @@ void usage(void)
 "   Programming Options" << endl << endl <<
 "       -h                print help" << endl <<
 "       -D                turn ON debug" << endl <<
-"       -g PGC,PGD,MCLR   GPIO selection, default if not present" << endl <<
-"		-f family		  PIC family (dspic or 18fj) [default to dsPIC33F]"
+"       -g PGC,PGD,MCLR   GPIO selection (optional)" << endl <<
+"       -f family         PIC family (dspic or 18fj) [default to dsPIC33F]" << endl <<
 "       -r                read chip" << endl <<
-"       -o file           	output file (ofile.hex)\n" << endl <<
+"       -o file           output file (ofile.hex)" << endl <<
 "       -w                bulk erase and write chip" << endl <<
-"       -i file           	input file" << endl <<
-"		-n					skip memory verification after writing" << endl <<
+"       -i file           input file" << endl <<
+"       -n                skip memory verification after writing" << endl <<
 "       -e                bulk erase chip" << endl <<
 "       -b                blank check of the chip" << endl <<
 "       -d                read configuration registers" << endl << endl <<
