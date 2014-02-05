@@ -353,28 +353,32 @@ void pic18fj::write(char *infile)
 	cerr << "DONE!" << endl;
 
 	/* Verify Code Memory and Configuration Word */
-	cerr << "Verifying written data";
+	if(verify){
+		cerr << "Verifying written data";
 
-	goto_mem_location(0x000000);
+		goto_mem_location(0x000000);
 
-	for (addr = 0; addr < mem.code_memory_size; addr++) {
+		for (addr = 0; addr < mem.code_memory_size; addr++) {
 
-		send_cmd(COMM_TABLE_READ_POST_INC);
-		data = read_data();
-		send_cmd(COMM_TABLE_READ_POST_INC);
-		data = ( read_data() << 8 ) | ( data & 0xFF );
+			send_cmd(COMM_TABLE_READ_POST_INC);
+			data = read_data();
+			send_cmd(COMM_TABLE_READ_POST_INC);
+			data = ( read_data() << 8 ) | ( data & 0xFF );
 
-		if (debug) fprintf(stderr, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n", addr*2, data, (mem.filled[addr]) ? (mem.location[addr]) : 0xFFFF);
+			if (debug) fprintf(stderr, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n", addr*2, data, (mem.filled[addr]) ? (mem.location[addr]) : 0xFFFF);
 
-		if ( (data != mem.location[addr]) & ( mem.filled[addr]) ) {
-			fprintf(stderr, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...", addr*2, data, mem.location[addr]);
-			break;
+			if ( (data != mem.location[addr]) & ( mem.filled[addr]) ) {
+				fprintf(stderr, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...", addr*2, data, mem.location[addr]);
+				break;
+			}
+			if(!(addr%320))
+				cerr << ".";
 		}
-		if(!(addr%320))
-			cerr << ".";
-	}
 
-	cerr << "DONE!" << endl;
+		cerr << "DONE!" << endl;
+	}
+	else
+		cerr << "Memory verification skipped." << endl;
 
 }
 

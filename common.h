@@ -89,5 +89,6 @@ void usage(void);
 extern volatile uint32_t *gpio;
 extern int pic_clk, pic_data, pic_mclr;
 extern bool debug;
+extern bool verify;
 
 #endif /* COMMON_H_ */

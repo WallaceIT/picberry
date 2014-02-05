@@ -681,153 +681,157 @@ void dspic::write(char *infile)
 	cerr << "DONE!" << endl;
 
 	/* VERIFY CODE MEMORY */
-	cerr << endl << "Verifying written memory locations";
-	counter = 0;
+	if(verify){
+		cerr << endl << "Verifying written memory locations";
+		counter = 0;
 
-	reset_pc();
-	reset_pc();
-	send_nop();
-
-	/*for (addr = 0; addr < mem.code_memory_size; addr+=2){
-
-		skip = 1;
-
-		for(k=0; k<32; k=k+2)
-			if(mem.filled[addr+k] == 1) skip = 0;
-
-		if(skip){
-			addr=addr+126;
-			continue;
-		}
-
-		if((addr & 0x0000FFFF) == 0 || addr == 0x00003800){
-			send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );
-			send_cmd(0x880190);
-			send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );
-			cerr << "*";
-		}
-
-		send_cmd(0x207847);
-		send_nop();
-
-		send_cmd(0xBA0B96);
-		send_nop();
-		send_nop();
-		verify[0] = read_data();
-
-		send_cmd(0xBA9BB6);
-		send_nop();
-		send_nop();
-		verify[1] = read_data();
-
-		if (debug){
-			fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr), verify[0]);
-			fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr+1), verify[1]);
-		}
-
-		if(mem.filled[addr] && verify[0] != mem.location[addr]){
-			fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
-					addr, mem.location[addr], verify[0]);
-			exit(0);
-		}
-
-		if(mem.filled[addr+1] && verify[1] != mem.location[addr+1]){
-			fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
-					addr+1, mem.location[addr+1], verify[1]);
-			exit(0);
-		}
-
-		if(counter++%64 == 0)
-			cerr << ".";
-	};*/
-
-	for(addr=0; addr < mem.code_memory_size; addr=addr+8) {
-
-		for(k=0; k<8; k+=2)
-			if(mem.filled[addr+k]) skip = 0;
-			else skip =1;
-
-		if(((addr & 0x0000FFFF) == 0 || skipped) & !skip){
-			send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
-			send_cmd(0x880190);									// MOV W0, TBLPAG
-			send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
-		}
-
-		if(skip){
-			skipped=1;
-			continue;
-		}
-		else skipped=0;
-
-		/* Fetch the next four memory locations and put them to W0:W5 */
-		send_cmd(0xEB0380);
-		send_nop();
-		send_cmd(0xBA1B96);
-		send_nop();
-		send_nop();
-		send_cmd(0xBADBB6);
-		send_nop();
-		send_nop();
-		send_cmd(0xBADBD6);
-		send_nop();
-		send_nop();
-		send_cmd(0xBA1BB6);
-		send_nop();
-		send_nop();
-		send_cmd(0xBA1B96);
-		send_nop();
-		send_nop();
-		send_cmd(0xBADBB6);
-		send_nop();
-		send_nop();
-		send_cmd(0xBADBD6);
-		send_nop();
-		send_nop();
-		send_cmd(0xBA0BB6);
-		send_nop();
-		send_nop();
-
-		/* read six data words (16 bits each) */
-		for(i=0; i<6; i++){
-			send_cmd(0x883C20 + i);
-			send_nop();
-			send_nop();
-			raw_data[i] = read_data();
-			send_nop();
-		}
-
+		reset_pc();
 		reset_pc();
 		send_nop();
 
-		/* store data correctly */
-		data[0] = raw_data[0];
-		data[1] = raw_data[1] & 0x00FF;
-		data[3] = (raw_data[1] & 0xFF00) >> 8;
-		data[2] = raw_data[2];
-		data[4] = raw_data[3];
-		data[5] = raw_data[4] & 0x00FF;
-		data[7] = (raw_data[4] & 0xFF00) >> 8;
-		data[6] = raw_data[5];
+		/*for (addr = 0; addr < mem.code_memory_size; addr+=2){
 
-		for(i=0; i<8; i++){
-			if (debug)
-				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
-							(addr+i), data[i]);
+			skip = 1;
 
-			if(mem.filled[addr+i] && data[i] != mem.location[addr+i]){
+			for(k=0; k<32; k=k+2)
+				if(mem.filled[addr+k] == 1) skip = 0;
+
+			if(skip){
+				addr=addr+126;
+				continue;
+			}
+
+			if((addr & 0x0000FFFF) == 0 || addr == 0x00003800){
+				send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );
+				send_cmd(0x880190);
+				send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );
+				cerr << "*";
+			}
+
+			send_cmd(0x207847);
+			send_nop();
+
+			send_cmd(0xBA0B96);
+			send_nop();
+			send_nop();
+			verify[0] = read_data();
+
+			send_cmd(0xBA9BB6);
+			send_nop();
+			send_nop();
+			verify[1] = read_data();
+
+			if (debug){
+				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr), verify[0]);
+				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr+1), verify[1]);
+			}
+
+			if(mem.filled[addr] && verify[0] != mem.location[addr]){
 				fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
-								addr+i, mem.location[addr+i], data[i]);
+						addr, mem.location[addr], verify[0]);
 				exit(0);
 			}
 
+			if(mem.filled[addr+1] && verify[1] != mem.location[addr+1]){
+				fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
+						addr+1, mem.location[addr+1], verify[1]);
+				exit(0);
+			}
+
+			if(counter++%64 == 0)
+				cerr << ".";
+		};*/
+
+		for(addr=0; addr < mem.code_memory_size; addr=addr+8) {
+
+			for(k=0; k<8; k+=2)
+				if(mem.filled[addr+k]) skip = 0;
+				else skip =1;
+
+			if(((addr & 0x0000FFFF) == 0 || skipped) & !skip){
+				send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
+				send_cmd(0x880190);									// MOV W0, TBLPAG
+				send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
+			}
+
+			if(skip){
+				skipped=1;
+				continue;
+			}
+			else skipped=0;
+
+			/* Fetch the next four memory locations and put them to W0:W5 */
+			send_cmd(0xEB0380);
+			send_nop();
+			send_cmd(0xBA1B96);
+			send_nop();
+			send_nop();
+			send_cmd(0xBADBB6);
+			send_nop();
+			send_nop();
+			send_cmd(0xBADBD6);
+			send_nop();
+			send_nop();
+			send_cmd(0xBA1BB6);
+			send_nop();
+			send_nop();
+			send_cmd(0xBA1B96);
+			send_nop();
+			send_nop();
+			send_cmd(0xBADBB6);
+			send_nop();
+			send_nop();
+			send_cmd(0xBADBD6);
+			send_nop();
+			send_nop();
+			send_cmd(0xBA0BB6);
+			send_nop();
+			send_nop();
+
+			/* read six data words (16 bits each) */
+			for(i=0; i<6; i++){
+				send_cmd(0x883C20 + i);
+				send_nop();
+				send_nop();
+				raw_data[i] = read_data();
+				send_nop();
+			}
+
+			reset_pc();
+			send_nop();
+
+			/* store data correctly */
+			data[0] = raw_data[0];
+			data[1] = raw_data[1] & 0x00FF;
+			data[3] = (raw_data[1] & 0xFF00) >> 8;
+			data[2] = raw_data[2];
+			data[4] = raw_data[3];
+			data[5] = raw_data[4] & 0x00FF;
+			data[7] = (raw_data[4] & 0xFF00) >> 8;
+			data[6] = raw_data[5];
+
+			for(i=0; i<8; i++){
+				if (debug)
+					fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
+								(addr+i), data[i]);
+
+				if(mem.filled[addr+i] && data[i] != mem.location[addr+i]){
+					fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
+									addr+i, mem.location[addr+i], data[i]);
+					exit(0);
+				}
+
+			}
+
+			if(counter++%256 == 0)
+				cerr << ".";
+
 		}
 
-		if(counter++%256 == 0)
-			cerr << ".";
-
+		cerr << "DONE!" << endl;
 	}
-
-	cerr << "DONE!" << endl;
+	else
+		cerr << "Memory verification skipped." << endl;
 
 }
 

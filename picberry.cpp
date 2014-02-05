@@ -42,7 +42,7 @@ int                	mem_fd;
 void              	*gpio_map;
 volatile uint32_t	*gpio;
 
-bool debug;
+bool debug=0, verify=1;
 
 int pic_clk=DEFAULT_PIC_CLK;
 int pic_data=DEFAULT_PIC_DATA;
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 
 	cout << "picberry PIC Programmer ver. " << VERSION << endl;
 
-	while ((opt = getopt(argc, argv, "hDg:i:o:c:s:f:rwebdR")) != -1) {
+	while ((opt = getopt(argc, argv, "hDng:i:o:c:s:f:rwebdR")) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
@@ -82,6 +82,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'D':
 			debug = 1;
+			break;
+		case 'n':
+			verify = 0;
 			break;
 		case 'f':
 			family = optarg;
@@ -278,10 +281,11 @@ void usage(void)
 "       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection, default if not present" << endl <<
 "		-f family		  PIC family (dspic or 18fj) [default to dsPIC33F]"
-"       -i file           input file" << endl <<
-"       -o file           output file (ofile.hex)\n" << endl <<
 "       -r                read chip" << endl <<
+"       -o file           	output file (ofile.hex)\n" << endl <<
 "       -w                bulk erase and write chip" << endl <<
+"       -i file           	input file" << endl <<
+"		-n					skip memory verification after writing" << endl <<
 "       -e                bulk erase chip" << endl <<
 "       -b                blank check of the chip" << endl <<
 "       -d                read configuration registers" << endl << endl <<
