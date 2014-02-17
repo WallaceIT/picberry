@@ -2,7 +2,7 @@
     $version=0.1;
     $debug=0;
 
-    $path = "/home/itp/";
+    $path = "/usr/bin/";
 
     if(isset($_POST['submitted'])){
         

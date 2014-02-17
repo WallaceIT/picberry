@@ -91,6 +91,13 @@ and for the Allwinner A10
 	MCLR <-> PB12
 	
 PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't set the port using a command line option (yet?).
+
+# Web client
+
+To use the web client, copy the `web` folder in a position accessible from your php-enabled webserver; make sure that php has safemode disabled and the user who run the server has write permissions to /dev/mem.
+
+NOTE that the web client is in beta stage and has only been tested under [mongoose](https://github.com/cesanta/mongoose).
+Please report any issues you will find!
 	
 # References
 
@@ -102,7 +109,7 @@ PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't
 picberry is released under the GPLv3 license; for full license see the `LICENSE` file.
 
 The Microchip name and logo, PIC, In-Circuit Serial Programming, ICSP are registered trademarks of Microchip Technology Incorporated in the U.S.A. and other countries.
-Raspberry Pi is a trademark of The Raspberry Pi Foundation
-
+Raspberry Pi is a trademark of The Raspberry Pi Foundation.
+jquery is (c) 2005, 2014 jQuery Foundation, Inc.
 
 
