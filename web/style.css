@@ -1,0 +1,110 @@
+@charset "UTF8";
+
+body {
+   
+    background-color: #eee;
+    padding-top: 40px;
+}
+
+div#container {
+    margin: auto;
+    padding: 0;
+    width: 30%;
+    border: solid 20px rgba(100,100,120,0.3);
+    border-radius: 15px;
+    box-shadow: 0 0 3px black;
+}
+
+div#inner-container {
+    margin: 0;
+    width: auto;
+    height: auto;
+    background-color: #ddd;
+    padding: 5px 30px 30px 30px;
+    text-align: center;
+    box-shadow: 0 0 10px black inset;
+    
+}
+
+div#options-container {
+    text-align: left;
+    margin: 5% auto;
+}
+
+div#version-container{
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    color: #888;
+}
+
+div#c-container{
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    color: #888;
+}
+
+div#warning-container{
+    font-weight: bold;
+    padding: 10px 0;
+    color: red;
+    border-top: solid 1px black;
+}
+
+div#log-container{
+    padding: 10px 0;
+    overflow-y: auto;
+}
+
+div#link-container{
+    color: blue;
+    padding: 10px 0 0 0;
+    border-top: solid 1px black;
+}
+
+.modalDialog {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background: rgba(0,0,0,0.8);
+	z-index: 99999;
+	opacity:0;
+	transition: opacity 400ms ease-in;
+	pointer-events: none;
+}
+
+.modalDialog:target {
+	opacity:1;
+	pointer-events: auto;
+}
+
+.modalDialog > div {
+	width: 50%;
+	position: relative;
+	margin: 10% auto;
+	padding: 1px 20px 20px 20px;
+    border: solid 10px rgba(100,100,120,0.3);
+	border-radius: 10px;
+	background: #ddd;
+    box-shadow: 0 0 10px black inset;
+}
+
+#closeModal {
+	background: #606061;
+	color: #FFFFFF;
+	line-height: 25px;
+	position: absolute;
+	right: -22px;
+	top: -20px;
+	width: 24px;
+    text-align: center;
+	text-decoration: none;
+	font-weight: bold;
+	border-radius: 12px;
+	box-shadow: 1px 1px 3px #000;
+}
+
+#closeModal:hover { background: #ccc; }

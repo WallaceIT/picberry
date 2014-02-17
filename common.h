@@ -90,5 +90,9 @@ extern volatile uint32_t *gpio;
 extern int pic_clk, pic_data, pic_mclr;
 extern bool debug;
 extern bool verify;
+extern bool client;
+extern bool log;
+
+#define cboth(X); cout<<(X);cerr<<(X);
 
 #endif /* COMMON_H_ */

@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <stdint.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -33,6 +34,7 @@
 #include <sys/ioctl.h>
 
 #include <iostream>
+#include <fstream>
 
 #include "common.h"
 #include "dspic.h"
@@ -42,7 +44,7 @@ int                	mem_fd;
 void              	*gpio_map;
 volatile uint32_t	*gpio;
 
-bool debug=0, verify=1;
+bool debug=0, verify=1, client=0, log=0;
 
 int pic_clk=DEFAULT_PIC_CLK;
 int pic_data=DEFAULT_PIC_DATA;
@@ -67,21 +69,44 @@ int main(int argc, char *argv[])
 	int opt, function = 0;
 	char *infile = 0;
 	char *outfile = 0;
+	char *logfile = 0;
+	char *debuglogfile = 0;
 	char *pins = 0;
 	char *family = 0;
 	short family_index=1;
 	uint32_t count = 0, start = 0;
+	int option_index = 0;
 
-	cout << "picberry PIC Programmer ver. " << VERSION << endl;
+	setvbuf(stdout, NULL, _IONBF, 1024);
 
-	while ((opt = getopt(argc, argv, "hDng:i:o:c:s:f:rwebdR")) != -1) {
+	static struct option long_options[] = {
+			{"help", 0, 0, 'h'},
+			{"debug", 1, 0, 'D'},
+			{"noverify", 0, 0, 'n'},
+			{"gpio", 1, 0, 'g'},
+			{"family", 1, 0, 'f'},
+			{"read", 1, 0, 'r'},
+			{"write", 0, 0, 'w'},
+			{"erase", 0, 0, 'e'},
+			{"blankcheck", 0, 0, 'b'},
+			{"registerdump", 0, 0, 'd'},
+			{"reset", 0, 0, 'R'},
+			{"silent", 0, 0, 'x'},
+			{"log", 1, 0, 'l'}
+	};
+
+	while ((opt = getopt_long(argc, argv, "hD::ng:c:s:f:r:w:ebdRxl::",long_options, &option_index)) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
 			exit(0);
 			break;
+		case 'x':
+			client = 1;
+			break;
 		case 'D':
 			debug = 1;
+			debuglogfile = optarg;
 			break;
 		case 'n':
 			verify = 0;
@@ -89,16 +114,16 @@ int main(int argc, char *argv[])
 		case 'f':
 			family = optarg;
 			break;
-		case 'i':
-			infile = optarg;
-			break;
-		case 'o':
-			outfile = optarg;
-			break;
 		case 'g':
 			pins = optarg;
 		    break;
+		case 'l':
+			log = 1;
+			client = 1;
+			logfile = optarg;
+			break;
 		case 'r':
+			outfile = optarg;
 			function |= 0x01;
 			break;
 		case 'c':
@@ -108,6 +133,7 @@ int main(int argc, char *argv[])
 			start = atoi(optarg);
 			break;
 		case 'w':
+			infile = optarg;
 			function |= 0x02;
 			break;
 		case 'e':
@@ -123,20 +149,36 @@ int main(int argc, char *argv[])
 			function = 0x80;
 			break;
 		default:
-			cerr << "\n";
+			clog << "\n";
 			usage();
 			exit(1);
 		}
 	}
 
 	if (function == 0x02 && !infile) {
-		cerr << "Please specify an input file with -i option." << endl;
+		cout << "Please specify an input file!" << endl;
 		exit(1);
+	}
+
+	if(!client)
+		cout << "picberry PIC Programmer ver. " << VERSION << endl;
+
+	/* If required, setup log file(s) */
+	if(log){
+		cout << "Redirecting output to log file..."<< endl;
+
+		freopen(logfile?logfile:"picberry-log.txt","w",stdout);
+		setvbuf(stdout, NULL, _IONBF, 1024);
+
+		if(debug){
+			freopen(debuglogfile?debuglogfile:"picberry-debug-log.txt","w",stderr);
+			clog << "picberry PIC Programmer ver. " << VERSION << endl;
+		}
 	}
 
 	/* Setup gpio pointer for direct register access */
 	if(debug)
-		cerr << "Setting up i/o...\n";
+		clog << "Setting up i/o...\n";
 
 	setup_io();
 
@@ -144,9 +186,9 @@ int main(int argc, char *argv[])
 	if(pins != 0)    	// if GPIO connections are specified in the options...
 	   sscanf(&pins[0], "%d,%d,%d", &pic_clk, &pic_data, &pic_mclr);
 	if(debug){
-	   cerr << "PGC connected to pin " << pic_clk << endl;
-	   cerr << "PGD connected to pin " << pic_data << endl;
-	   cerr << "MCLR connected to pin " << pic_mclr << endl;
+	   clog << "PGC connected to pin " << pic_clk << endl;
+	   clog << "PGD connected to pin " << pic_data << endl;
+	   clog << "MCLR connected to pin " << pic_mclr << endl;
 	}
 
 	GPIO_IN(pic_clk); 	// NOTE: MUST use GPIO_IN before GPIO_OUT
@@ -174,7 +216,9 @@ int main(int argc, char *argv[])
 	else if(strcmp(family,"18fj") == 0)
 		family_index=1;
 	else{
-		cerr << "ERROR: PIC family not correctly chosen." << endl;
+		cout << "ERROR: PIC family not correctly chosen." << endl;
+		if(log && debug)
+			clog << "ERROR: PIC family not correctly chosen." << endl;
 		exit(-1);
 	}
 
@@ -202,16 +246,29 @@ int main(int argc, char *argv[])
 				pic[family_index]->dump_configuration_registers();
 				break;
 			default:
-				cerr << endl << endl << "Please select only one option" <<
+				cout << endl << endl << "Please select only one option" <<
 				"between -d, -b, -r, -w, -e." << endl;
+				if(log && debug)
+					clog << endl << endl << "Please select only one option" <<
+					"between -d, -b, -r, -w, -e." << endl;
 				break;
 		};
 
 	pic[family_index]->exit_program_mode();
+
+	if(!client){
+		cout << "Press ENTER to exit program mode...";
+		fgetc(stdin);
+	}
+
+	GPIO_IN(pic_mclr);      /* MCLR as input, puts the output driver in Hi-Z */
+
 	close_io();
 	free(pic[family_index]->mem.location);
 	free(pic[family_index]->mem.filled);
 
+	fclose(stderr);
+	fclose(stdout);
 	return 0;
 }
 
@@ -265,26 +322,28 @@ void pic_reset(void)
 
     GPIO_CLR(pic_mclr);		// remove VDD from MCLR pin
 	delay_us(1500);
-	cerr << "Press any key to release the reset...";
-    fgetc(stdin);
-    cerr << endl;
+	if(!client){
+		cout << "Press any key to release the reset...";
+		fgetc(stdin);
+		cout << endl;
+	}
     GPIO_IN(pic_mclr);		// MCLR as input, puts the output driver in Hi-Z
 }
 
 /* print the help */
 void usage(void)
 {
-	cerr <<
+	cout <<
 "Usage: picberry [options]" << endl << endl <<
 "   Programming Options" << endl << endl <<
 "       -h                print help" << endl <<
-"       -D                turn ON debug" << endl <<
+"       -x                silent mode" << endl <<
+"       -l [file]         redirect the output to log file(s)" << endl <<
+"       -D [file]         turn ON debug (log to file if logging is enabled)" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection (optional)" << endl <<
-"       -f family         PIC family (dspic or 18fj) [default to dsPIC33F]" << endl <<
-"       -r                read chip" << endl <<
-"       -o file           output file (ofile.hex)" << endl <<
-"       -w                bulk erase and write chip" << endl <<
-"       -i file           input file" << endl <<
+"       -f family         PIC family (dspic or 18fj) [defaults to dsPIC33F]" << endl <<
+"       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<
+"       -w file.hex       bulk erase and write chip" << endl <<
 "       -n                skip memory verification after writing" << endl <<
 "       -e                bulk erase chip" << endl <<
 "       -b                blank check of the chip" << endl <<

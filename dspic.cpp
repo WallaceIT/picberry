@@ -195,9 +195,6 @@ void dspic::exit_program_mode(void)
 	delay_us(DELAY_P16);
 	GPIO_CLR(pic_mclr);		/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);	/* wait (at least) P17 */
-	cerr << "Press any key to exit program mode...";
-	fgetc(stdin);
-	GPIO_IN(pic_mclr);      /* MCLR as input, puts the output driver in Hi-Z */
 }
 
 /* read the device ID and revision; returns only the id */
@@ -240,15 +237,20 @@ bool dspic::read_device_id(void)
 			mem.program_memory_size = 0x0F80018;
 			mem.location = (uint16_t*) calloc(mem.program_memory_size,sizeof(uint16_t));
 			mem.filled = (bool*) calloc(mem.program_memory_size,sizeof(bool));
-			cerr << name << " detected!" << endl;
+			cout << name << " detected!" << endl;
+			if(log && debug)
+				clog << name << " detected!" << endl;
 			found = 1;
 			break;
 		}
 	}
 
 	if (found == 0){
-		cerr << "ERROR: unknown/unsupported device "
+		cout << "ERROR: unknown/unsupported device "
 				"or programmer not connected." << endl;
+		if(log && debug)
+			clog << "ERROR: unknown/unsupported device "
+					"or programmer not connected." << endl;
 	}
 
 	return found;
@@ -262,7 +264,8 @@ void dspic::blank_check(void)
 	unsigned short i;
 	uint16_t data[8], raw_data[6];
 
-	cerr << endl <<"Blank check";
+	cout << endl <<"Blank check";
+	if(log && debug)	clog << endl <<"Blank check";
 	int counter=0;
 
 	/* exit reset vector */
@@ -329,19 +332,24 @@ void dspic::blank_check(void)
 		data[7] = (raw_data[4] & 0xFF00) >> 8;
 		data[6] = raw_data[5];
 
-		if(counter++%500 == 0)
-			cerr << ".";
+		if(counter++%500 == 0){
+			cout << ".";
+			if(log && debug)	clog << ".";
+		}
 
 		for(i=0; i<8; i++)
 			if ((i%2 == 0 && data[i] != 0xFFFF) || (i%2 == 1 && data[i] != 0x00FF)) {
-				cerr << "chip is not blank!\n";
+				cout << "chip is not blank!\n";
+				if(log && debug) clog << "chip is not blank!\n";
 				addr = mem.code_memory_size + 10;
 				break;
 			}
 	}
 
-	if(addr <= (mem.code_memory_size + 8))
-		cerr << "chip is blank!\n";
+	if(addr <= (mem.code_memory_size + 8)){
+		cout << "chip is blank!\n";
+		if(log && debug) clog << "chip is blank!\n";
+	};
 
 	reset_pc();
 	reset_pc();
@@ -357,7 +365,8 @@ void dspic::bulk_erase(void)
     reset_pc();
     send_nop();
 
-	cerr << "\nPerforming a Bulk Erase";
+	cout << "Performing a Bulk Erase";
+	if(log && debug) clog << "Performing a Bulk Erase";
 
 	send_cmd(0x2404FA);
 	send_cmd(0x883B0A);
@@ -376,11 +385,14 @@ void dspic::bulk_erase(void)
 		nvmcon = read_data();
 		reset_pc();
 		send_nop();
-		if(counter++%20 == 0)
-			cerr << ".";
+		if(counter++%20 == 0){
+			cout << ".";
+			if(log && debug) clog << ".";
+		}
 	} while((nvmcon & 0x8000) == 0x8000);
 
-	cerr << "DONE!" << endl;
+	cout << "DONE!" << endl;
+	if(log && debug) clog << "DONE!" << endl;
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -394,11 +406,12 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 	stopaddr = mem.code_memory_size;
 	if(count != 0 && count < stopaddr){
 		stopaddr = startaddr + count;
-		fprintf(stderr, "Read only %d memory locations, from %06X to %06X\n",
+		fprintf(stdout, "Read only %d memory locations, from %06X to %06X\n",
 				count, startaddr, stopaddr);
 	}
 
-	cerr << endl <<"Reading chip";
+	cout << endl <<"Reading chip";
+	if(log && debug) clog << endl <<"Reading chip";
 	counter=0;
 
 	/* exit reset vector */
@@ -482,8 +495,8 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 			}
 		}
 
-		if(!debug && counter++%500 == 0)
-			cerr << ".";
+		if(counter++%500 == 0)
+			cout << ".";
 
 		/* TODO: checksum */
 	}
@@ -511,7 +524,8 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 		}
 	}
 
-	cerr << "DONE!" << endl;
+	cout << "DONE!" << endl;
+	if(log && debug) clog << "DONE!" << endl;
 	write_inhx(&mem, outfile);
 }
 
@@ -528,9 +542,6 @@ void dspic::write(char *infile)
 
 	read_inhx(infile, &mem);
 
-	cerr << "HEX file read. Press any key to erase and program the device.";
-	fgetc(stdin);
-
 	bulk_erase();
 
 	/* Exit reset vector */
@@ -539,7 +550,8 @@ void dspic::write(char *infile)
 	send_nop();
 
 	/* WRITE CODE MEMORY */
-	cerr << endl << "Writing chip";
+	cout << "Writing chip";
+	if(log && debug) clog << "Writing chip";
 	counter=0;
 
 	send_nop();
@@ -626,14 +638,16 @@ void dspic::write(char *infile)
 		} while((nvmcon & 0x8000) == 0x8000);
 
 		if(counter++%16 == 0)
-			cerr << ".";
+			cout << ".";
 	};
 
-	cerr << "DONE!" << endl;
+	cout << "DONE!" << endl;
+	if(log && debug) clog << "DONE!" << endl;
 
 	/* WRITE CONFIGURATION REGISTERS */
 
-	cerr << endl << "\nWriting Configuration registers.";
+	cout << "Writing Configuration registers.";
+	if(log && debug) clog << "Writing Configuration registers.";
 
 	send_cmd(0x200007);
 	send_cmd(0x24000A);
@@ -645,8 +659,7 @@ void dspic::write(char *infile)
 
 	for(i=0; i<12; i++){
 
-		if(!debug)
-			cerr << ".";
+		cout << ".";
 
 		if(mem.filled[addr+2*i]){
 
@@ -677,12 +690,13 @@ void dspic::write(char *infile)
 		}
 	}
 	if(debug)
-		cerr << endl;
-	cerr << "DONE!" << endl;
+		clog << endl;
+	cout << "DONE!" << endl;
 
 	/* VERIFY CODE MEMORY */
 	if(verify){
-		cerr << endl << "Verifying written memory locations";
+		cout << "Verifying written memory locations";
+		if(log && debug) clog << "Verifying written memory locations";
 		counter = 0;
 
 		reset_pc();
@@ -705,7 +719,7 @@ void dspic::write(char *infile)
 				send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );
 				send_cmd(0x880190);
 				send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );
-				cerr << "*";
+				clog << "*";
 			}
 
 			send_cmd(0x207847);
@@ -739,7 +753,7 @@ void dspic::write(char *infile)
 			}
 
 			if(counter++%64 == 0)
-				cerr << ".";
+				clog << ".";
 		};*/
 
 		for(addr=0; addr < mem.code_memory_size; addr=addr+8) {
@@ -816,22 +830,28 @@ void dspic::write(char *infile)
 								(addr+i), data[i]);
 
 				if(mem.filled[addr+i] && data[i] != mem.location[addr+i]){
-					fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
+					fprintf(stdout,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
 									addr+i, mem.location[addr+i], data[i]);
+					if(log && debug)
+						fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read! \n\n",
+								addr+i, mem.location[addr+i], data[i]);
 					exit(0);
 				}
 
 			}
 
 			if(counter++%256 == 0)
-				cerr << ".";
+				cout << ".";
 
 		}
 
-		cerr << "DONE!" << endl;
+		cout << "DONE!" << endl;
+		if(log && debug) clog << "DONE!" << endl;
 	}
-	else
-		cerr << "Memory verification skipped." << endl;
+	else{
+		cout << "Memory verification skipped." << endl;
+		if(log && debug) clog << "Memory verification skipped." << endl;
+	}
 
 }
 
@@ -841,7 +861,8 @@ void dspic::dump_configuration_registers(void)
 	const char *regname[] = {"FBS","FSS","FGS","FOSCSEL","FOSC","FWDT","FPOR",
 							"FICD","FUID0","FUID1","FUID2","FUID3"};
 
-	cerr << endl << "Configuration registers:" << endl << endl;
+	cout << endl << "Configuration registers:" << endl << endl;
+	if(log && debug) clog << endl << "Configuration registers:" << endl << endl;
 
 	reset_pc();
 	reset_pc();
@@ -857,10 +878,12 @@ void dspic::dump_configuration_registers(void)
 		send_cmd(0xBA0BB6);
 		send_nop();
 		send_nop();
-		fprintf(stderr," - %s: 0x%02x\n", regname[i], read_data());
+		fprintf(stdout," - %s: 0x%02x\n", regname[i], read_data());
+		if(log && debug)
+			fprintf(stderr," - %s: 0x%02x\n", regname[i], read_data());
 	}
 
-	cerr << endl;
+	cout << endl;
 
 	reset_pc();
 	send_nop();
