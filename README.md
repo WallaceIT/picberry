@@ -92,7 +92,7 @@ and for the Allwinner A10
 	
 PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't set the port using a command line option (yet?).
 
-Two setup photos can be find in the [[Wiki|Setup Images]].
+Two setup photos can be find in the [Wiki] (../../wiki/Setup Images).
 
 # Web client
 
