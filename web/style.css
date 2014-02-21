@@ -1,28 +1,30 @@
 @charset "UTF8";
 
 body {
-   
-    background-color: #eee;
+    background-color: #6bc;
     padding-top: 40px;
+}
+
+hr {
+    border: 0;
+    border-bottom: 1px dashed #278;
 }
 
 div#container {
     margin: auto;
-    padding: 0;
+    padding: 15px;
     width: 30%;
-    border: solid 20px rgba(100,100,120,0.3);
+    background-color: rgba(255,255,255,0.5);
     border-radius: 15px;
-    box-shadow: 0 0 3px black;
+    box-shadow: 0 0 5px black;
 }
 
 div#inner-container {
     margin: 0;
     width: auto;
     height: auto;
-    background-color: #ddd;
     padding: 5px 30px 30px 30px;
     text-align: center;
-    box-shadow: 0 0 10px black inset;
     
 }
 
@@ -31,25 +33,22 @@ div#options-container {
     margin: 5% auto;
 }
 
-div#version-container{
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    color: #888;
-}
-
 div#c-container{
     position: absolute;
     bottom: 5px;
     right: 5px;
-    color: #888;
+    color: rgba(100,100,100,0.7);
+}
+
+div#c-container a{
+    color: rgba(100,100,100,0.7);
 }
 
 div#warning-container{
+    text-align: center;
     font-weight: bold;
-    padding: 10px 0;
+    font-weight: normal;
     color: red;
-    border-top: solid 1px black;
 }
 
 div#log-container{
@@ -58,9 +57,26 @@ div#log-container{
 }
 
 div#link-container{
-    color: blue;
     padding: 10px 0 0 0;
-    border-top: solid 1px black;
+    color: rgba(0,0,0,0.7);
+    font-weight: normal;
+}
+
+div#link-container a{
+    color: rgba(0,0,0,0.7);
+}
+
+div#link-container a:hover{
+    color: rgba(0,0,0,0.6);
+}
+
+div#progbar-container{
+    padding: 0 0 10px 0;
+    text-align: center;
+}
+
+div#progbar-container table{
+    width: 100%;
 }
 
 .modalDialog {
@@ -85,11 +101,14 @@ div#link-container{
 	width: 50%;
 	position: relative;
 	margin: 10% auto;
+    padding: 10px;
 	padding: 1px 20px 20px 20px;
-    border: solid 10px rgba(100,100,120,0.3);
 	border-radius: 10px;
-	background: #ddd;
-    box-shadow: 0 0 10px black inset;
+	background: #7cd;
+    box-shadow: 0 0 5px black;
+    text-align: center;
+    font-weight: bold;
+    color: rgba(0,0,0,0.7);
 }
 
 #closeModal {
@@ -97,8 +116,8 @@ div#link-container{
 	color: #FFFFFF;
 	line-height: 25px;
 	position: absolute;
-	right: -22px;
-	top: -20px;
+	right: -14px;
+	top: -12px;
 	width: 24px;
     text-align: center;
 	text-decoration: none;
@@ -108,3 +127,18 @@ div#link-container{
 }
 
 #closeModal:hover { background: #ccc; }
+
+.progressBar {
+	width: 100%;
+	height: 22px;
+	border: 1px solid #111;
+	background-color: #292929;
+}
+
+.progressBar div {
+	height: 100%;
+	color: #fff;
+	text-align: right;
+	width: 0;
+	background-color: #0099ff;
+}

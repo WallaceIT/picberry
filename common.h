@@ -77,7 +77,7 @@ void setup_io(void);
 void close_io(void);
 
 /* inhx.cpp functions */
-void read_inhx(char *infile, memory *mem);
+unsigned int read_inhx(char *infile, memory *mem);
 void write_inhx(memory *mem, char *outfile);
 
 /* Runtime Functions */
@@ -92,7 +92,5 @@ extern bool debug;
 extern bool verify;
 extern bool client;
 extern bool log;
-
-#define cboth(X); cout<<(X);cerr<<(X);
 
 #endif /* COMMON_H_ */

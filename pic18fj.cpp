@@ -61,6 +61,8 @@
 
 #define ENTER_PROGRAM_KEY	0x4D434850
 
+unsigned int lcounter = 0;
+
 void pic18fj::enter_program_mode(void)
 {
 	int i;
@@ -210,7 +212,7 @@ bool pic18fj::read_device_id(void)
 	device_id = id;
 
 	if(debug)
-		fprintf(stderr,"Device ID: 0x%x\n", device_id );
+		fprintf(stdout,"Device ID: 0x%x\n", device_id );
 
 	for (unsigned short i=0;i < sizeof(piclist)/sizeof(piclist[0]);i++){
 
@@ -222,17 +224,10 @@ bool pic18fj::read_device_id(void)
 			mem.location = (uint16_t*) calloc(mem.program_memory_size,sizeof(uint16_t));
 			mem.filled = (bool*) calloc(mem.program_memory_size,sizeof(bool));
 			cout << name << " detected!" << endl;
-			if(log && debug)
-				clog << name << " detected!" << endl;
+			if(client) cerr << "PRT@" << name << endl;
 			found = 1;
 			break;
 		}
-	}
-
-	if (found == 0){
-		cout << "Error: unknown/unsupported device or programmer not connected." << endl;
-		if(log && debug)
-			clog << "Error: unknown/unsupported device or programmer not connected." << endl;
 	}
 
 	return found;
@@ -243,7 +238,6 @@ void pic18fj::bulk_erase(void)
 {
 
 	cout << "Performing a Bulk Erase...";
-	if(log && debug) clog << "Performing a Bulk Erase...";
 	goto_mem_location(0x3C0004);
 	send_cmd(COMM_TABLE_WRITE);
 	write_data(0x0180);
@@ -255,8 +249,6 @@ void pic18fj::bulk_erase(void)
 	delay_us(DELAY_P11);
 	delay_us(DELAY_P10);
 	cout << "DONE!" << endl;
-	if(log && debug) clog << "DONE!" << endl;
-
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -265,7 +257,9 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 	uint16_t addr, data = 0x0000;
 
 	cout << "Reading chip..." << endl;
-	if(log && debug) clog << "Reading chip..." << endl;
+	if(!log && !debug) cout << "[ 0%]";
+	if(client) cerr << "RED@00" << endl;
+	lcounter = 0;
 
 	/* Read Memory */
 
@@ -279,16 +273,22 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 		data = ( read_data() << 8 ) | (data & 0x00FF);
 
 		if (debug)
-			fprintf(stderr, "  addr = 0x%04X  data = 0x%04X\n", addr*2, data);
+			fprintf(stdout, "  addr = 0x%04X  data = 0x%04X\n", addr*2, data);
 
 		if (data != 0xFFFF) {
 			mem.location[addr]        = data;
 			mem.filled[addr]      = 1;
 		}
+
+		if(lcounter != addr*100/mem.code_memory_size){
+			if(client && lcounter/10 != addr*10/mem.code_memory_size)
+				fprintf(stderr,"RED@%2d\n", (addr*10/mem.code_memory_size)*10);
+			if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
+			lcounter = addr*100/mem.code_memory_size;
+		}
 	}
 
-	/* TODO: Checksum */
-
+	if(client) cerr << "RED@100" << endl;
 	write_inhx(&mem, outfile);
 }
 
@@ -298,13 +298,16 @@ void pic18fj::write(char *infile)
 	int i;
 	uint16_t data;
 	uint32_t addr = 0x00000000;
+	unsigned int filled_locations=1;
 
-	read_inhx(infile, &mem);
+	filled_locations = read_inhx(infile, &mem);
 
 	bulk_erase();
 
-	cout << "Writing chip";
-	if(log && debug) clog << "Writing chip";
+	cout << "Writing chip...";
+	if(!log && !debug) cout << "[ 0%]";
+	if(client) cerr << "WRT@00" << endl;
+	lcounter = 0;
 
 	send_cmd(COMM_CORE_INSTRUCTION);
 	write_data(0x84A6);			/* enable writes */
@@ -313,18 +316,18 @@ void pic18fj::write(char *infile)
 
 		goto_mem_location(2*addr);
 		if (debug)
-			fprintf(stderr, "Go to address 0x%08X \n", addr);
+			fprintf(stdout, "Go to address 0x%08X \n", addr);
 
 		for(i=0; i<31; i++){		                        /* write the first 62 bytes */
 			if (mem.filled[addr+i]) {
 				if (debug)
-					fprintf(stderr, "  Writing 0x%04X to address 0x%06X \n", mem.location[addr + i], (addr+i)*2 );
+					fprintf(stdout, "  Writing 0x%04X to address 0x%06X \n", mem.location[addr + i], (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(mem.location[addr+i]);
 			}
 			else {
 				if (debug)
-					fprintf(stderr, "  Writing 0xFFFF to address 0x%06X \n", (addr+i)*2 );
+					fprintf(stdout, "  Writing 0xFFFF to address 0x%06X \n", (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(0xFFFF);			/* write 0xFFFF in empty locations */
 			};
@@ -333,13 +336,13 @@ void pic18fj::write(char *infile)
 		/* write the last 2 bytes and start programming */
 		if (mem.filled[addr+31]) {
 			if (debug)
-				fprintf(stderr, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
+				fprintf(stdout, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(mem.location[addr+31]);
 		}
 		else {
 			if (debug)
-				fprintf(stderr, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
+				fprintf(stdout, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(0xFFFF);			         /* write 0xFFFF in empty locations */
 		};
@@ -347,29 +350,35 @@ void pic18fj::write(char *infile)
 		/* Programming Sequence */
 		GPIO_CLR(pic_data);
 		for (i = 0; i < 3; i++) {
-
-		                GPIO_SET(pic_clk);
-		                delay_us(DELAY_P2B);       /* Setup time */
-		                GPIO_CLR(pic_clk);
-		                delay_us(DELAY_P2A);       /* Hold time */
-		        }
+			GPIO_SET(pic_clk);
+			delay_us(DELAY_P2B);       /* Setup time */
+			GPIO_CLR(pic_clk);
+			delay_us(DELAY_P2A);       /* Hold time */
+		}
 		GPIO_SET(pic_clk);
 		delay_us(DELAY_P9);        /* Programming time */
 		GPIO_CLR(pic_clk);
 		delay_us(DELAY_P5);
 		write_data(0x0000);
 		/* end of Programming Sequence */
-		if(!(addr%320))
-			cout << ".";
+		if(lcounter != addr*100/filled_locations){
+			if(client && lcounter/10 != addr*10/filled_locations)
+				fprintf(stderr,"WRT@%2d\n", (addr*10/filled_locations)*10);
+			if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/filled_locations);
+			lcounter = addr*100/filled_locations;
+		}
 	};
 
+	if(!log) cout << "\b\b\b\b\b\b";
 	cout << "DONE!" << endl;
-	if(log && debug) clog << "DONE!" << endl;
+	if(client) cerr << "WRT@100" << endl;
 
 	/* Verify Code Memory and Configuration Word */
 	if(verify){
-		cout << "Verifying written data";
-		if(log && debug) clog << "Verifying written data";
+		cout << "Verifying written data...";
+		if(!log && !debug) cout << "[ 0%]";
+		if(client) cerr << "VRF@00" << endl;
+		lcounter = 0;
 
 		goto_mem_location(0x000000);
 
@@ -381,27 +390,32 @@ void pic18fj::write(char *infile)
 			data = ( read_data() << 8 ) | ( data & 0xFF );
 
 			if (debug)
-				fprintf(stderr, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n",
+				fprintf(stdout, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n",
 						addr*2, data, (mem.filled[addr]) ? (mem.location[addr]) : 0xFFFF);
 
 			if ( (data != mem.location[addr]) & ( mem.filled[addr]) ) {
 				fprintf(stdout, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
 						addr*2, data, mem.location[addr]);
 				if(log && debug)
-					fprintf(stderr, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
+					fprintf(stdout, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
 							addr*2, data, mem.location[addr]);
 				break;
 			}
-			if(!(addr%320))
-				cout << ".";
+			if(lcounter != addr*100/filled_locations){
+				if(client && lcounter/10 != addr*10/filled_locations)
+					fprintf(stderr,"VRF@%2d\n", (addr*10/filled_locations)*10);
+				if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/filled_locations);
+				lcounter = addr*100/filled_locations;
+			}
 		}
 
+		if(!log) cout << "\b\b\b\b\b";
 		cout << "DONE!" << endl;
-		if(log && debug) clog << "DONE!" << endl;
+		if(client) cerr << "VRF@100" << endl;
 	}
 	else{
 		cout << "Memory verification skipped." << endl;
-		if(log && debug) clog << "Memory verification skipped." << endl;
+		if(client) cerr << "MSG@Memory verification skipped." << endl;
 	}
 
 }
@@ -413,7 +427,8 @@ void pic18fj::blank_check(void)
 	uint8_t blank = 1;
 
 	cout << "Performing Blank Check...";
-	if(log && debug) clog << "Performing Blank Check...";
+	if(!log) cout << "[ 0%]";
+	lcounter = 0;
 
 	goto_mem_location(0x000000);
 
@@ -425,21 +440,24 @@ void pic18fj::blank_check(void)
 		data = (read_data() << 8) | (data & 0xFF) ;
 
 		if (data != 0xFFFF) {
+			if(!log) cout << "\b\b\b\b\b";
 			fprintf(stdout, "Chip not Blank! Address: 0x%d, Read: 0x%x.\n",  addr*2, data);
-			if(log && debug)
-				fprintf(stderr, "Chip not Blank! Address: 0x%d, Read: 0x%x.\n",  addr*2, data);
 			blank = 0;
 			break;
 		}
+
+		if(!log && lcounter != addr*100/mem.code_memory_size){
+			fprintf(stdout, "\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
+			lcounter = addr*100/mem.code_memory_size;
+		}
 	}
 
-	if (blank){
+	if(blank){
+		if(!log) cout << "\b\b\b\b\b";
 		cout << "Blank Chip!" << endl;
-		if(log && debug) clog << "Blank Chip!" << endl;
 	}
 
 	cout << "DONE!" << endl;
-	if(log && debug) clog << "DONE!" << endl;
 
 }
 
@@ -448,20 +466,16 @@ void pic18fj::dump_configuration_registers(void)
 {
 
 	cout << "Configuration Words:" << endl;
-	if(log && debug) clog << "Configuration Words:" << endl;
 
 	goto_mem_location(mem.code_memory_size - 4);
 
 	for (int i=1; i<5; i++) {
 		send_cmd(COMM_TABLE_READ_POST_INC);
 		fprintf(stdout, " - CONFIG%dL = 0x%2x.\n", i,read_data());
-		if(log && debug)
-			fprintf(stderr, " - CONFIG%dL = 0x%2x.\n", i,read_data());
+
 		send_cmd(COMM_TABLE_READ_POST_INC);
-		fprintf(stdout, " - CONFIG%dH = 0x%2x.\n", i,read_data());
-		if(log && debug)
-			fprintf(stderr, " - CONFIG%dH = 0x%2x.\n", i,read_data());
+		fprintf(stdout, " - CONFIG%dH = 0x%2x.\n", i,read_data());;
 	}
 
-	clog << endl;
+	cout << endl;
 }

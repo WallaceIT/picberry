@@ -29,14 +29,20 @@
 
 using namespace std;
 
-/* Read a file in Intel HEX8M or HEX32 format and fill the memory structure */
-void read_inhx(char *infile, memory *mem)
+/*
+ * Read a file in Intel HEX8M or HEX32 format and fill the memory structure
+ * Returns the number of filled locations
+ *
+ */
+unsigned int read_inhx(char *infile, memory *mem)
 {
         FILE *fp;
         int linenum;
         char line[256], *ptr;
         size_t linelen;
         int nread;
+
+        unsigned int filled_locations=0;
 
         uint16_t i=0;
         uint8_t  byte_count;
@@ -51,13 +57,11 @@ void read_inhx(char *infile, memory *mem)
         fp = fopen(infile, "r");
         if (fp == NULL) {
         	cout << "Error: cannot open source file " << infile << "." << endl;
-        	if(log && debug)
-        		clog << "Error: cannot open source file " << infile << "." << endl;
-        	exit(-1);
+        	return 0;
         }
 
         cout << "Reading hex file...";
-        if(log && debug) clog << "Reading hex file...";
+        if(debug) cout << endl;
 
         linenum = 0;
         while (1) {
@@ -67,58 +71,53 @@ void read_inhx(char *infile, memory *mem)
             	linenum++;
                 linelen = strlen(line);
                 if (debug) {
-                	fprintf(stderr, "  line %d (%zd bytes): '", linenum, linelen);
+                	fprintf(stdout, "  line %d (%zd bytes): '", linenum, linelen);
                     for (i = 0; i < linelen; i++) {
                     	if (line[i] == '\n')
-                    		cerr << "\\n";
+                    		cout << "\\n";
                     	else if (line[i] == '\r')
-                    		cerr << "\\r";
+                    		cout << "\\r";
                     	else
-                    		fprintf(stderr, "%c", line[i]);
+                    		fprintf(stdout, "%c", line[i]);
                     }
-                    cerr << "'\n";
+                    cout << "'\n";
                 }
 
                 if (line[0] != ':') {
-                	cout << "Error: invalid start code.\n";
-                	if(log && debug) clog << "Error: invalid start code.\n";
-                	exit(-1);
+                	cout << "Error: invalid start code."  << endl;
+                	return 0;
                 }
 
                 nread = sscanf(&line[1], "%2hhx", &byte_count);
                 if (nread != 1) {
-                	cout << "Error: cannot read byte count.\n";
-                	if(log && debug) clog << "Error: cannot read byte count.\n";
-                	exit(-1);
+                	cout << "Error: cannot read byte count." << endl;
+                	return 0;
                 }
-                if (debug) fprintf(stderr, "  byte_count  = 0x%02X\n", byte_count);
+                if (debug) fprintf(stdout, "  byte_count  = 0x%02X\n", byte_count);
 
                 nread = sscanf(&line[3], "%4hx", &address);
                 if (nread != 1) {
-                	cout << "Error: cannot read address.\n";
-                	if(log && debug) clog << "Error: cannot read address.\n";
-                	exit(-1);
+                	cout << "Error: cannot read address." << endl;
+                	return 0;
                 }
                         
                 nread = sscanf(&line[7], "%2hhx", &record_type);
                 if (nread != 1) {
-                	cout << "Error: cannot read record type.\n";
-                	if(log && debug) clog << "Error: cannot read record type.\n";
-                	exit(-1);
+                	cout << "Error: cannot read record type." << endl;
+                	return 0;
                 }
 
-                if (debug && record_type != 0x04) fprintf(stderr, "  address     = 0x%04X\n", address);
+                if (debug && record_type != 0x04) fprintf(stdout, "  address     = 0x%04X\n", address);
 
                 if (debug)
-                	fprintf(stderr, "  record_type = 0x%02X (%s)\n",
+                	fprintf(stdout, "  record_type = 0x%02X (%s)\n",
                 			record_type, record_type == 0 ? "data" :
                 				(record_type == 1 ? "EOF" :
                 					(record_type == 0x04 ? "Extended Linear Address" : "Unknown")));
 
                 if (record_type != 0 && record_type != 1 && record_type != 0x04) {
-                	cout << "Error: unknown record type.\n";
-                	if(log && debug) clog << "Error: unknown record type.\n";
-                	exit(-1);
+                	cout << "Error: unknown record type." << endl;
+                	return 0;
                 }
 
                 checksum_calculated  = byte_count;
@@ -128,7 +127,7 @@ void read_inhx(char *infile, memory *mem)
 
                 if(record_type == 0x04){
                 	nread = sscanf(&line[9], "%4hx", &base_address);
-                	if (debug) fprintf(stderr, "  NEW BASE ADDRESS     = 0x%04X\n", base_address);
+                	if (debug) fprintf(stdout, "  NEW BASE ADDRESS     = 0x%04X\n", base_address);
                 	checksum_calculated += (base_address >> 8) & 0xFF;
                 	checksum_calculated += base_address & 0xFF;
                 	i = 1;
@@ -138,59 +137,61 @@ void read_inhx(char *infile, memory *mem)
                 	for (i = 0; i < byte_count/2; i++) {
                 		nread = sscanf(&line[9+4*i], "%4hx", &data);
                 		if (nread != 1) {
-                			cout << "Error: cannot read data.\n";
-                			if(log && debug) clog << "Error: cannot read data.\n";
-                			exit(-1);
+                			cout << "Error: cannot read data." << endl;
+                			return 0;
                 		}
                 		tmp = data;
                 		data = (data >> 8) | (tmp << 8);
-                		if (debug) fprintf(stderr, "  data        = 0x%04X", data);
+                		if (debug) fprintf(stdout, "  data        = 0x%04X", data);
                 		checksum_calculated += (data >> 8) & 0xFF;
                 		checksum_calculated += data & 0xFF;
 
                 		extended_address = ( ((uint32_t)base_address << 16) | address);
                 		if (debug)
-                			fprintf(stderr, " @0x%08X\n", extended_address/2+i);
+                			fprintf(stdout, " @0x%08X\n", extended_address/2+i);
 
                 		mem->location[extended_address/2 + i]   = data;
                 		mem->filled[extended_address/2 + i] = 1;
+                		filled_locations++;
                 	}
 
                 checksum_calculated = (checksum_calculated ^ 0xFF) + 1;
 
                 nread = sscanf(&line[9+4*i], "%2hhx", &checksum_read);
                 if (nread != 1) {
-                	cout << "Error: cannot read checksum.\n";
-                	if(log && debug) clog << "Error: cannot read checksum.\n";
-                	exit(-1);
+                	cout << "Error: cannot read checksum." << endl;
+                	return 0;
                 }
-                if (debug) fprintf(stderr, "  checksum    = 0x%02X\n", checksum_read);
+                if (debug) fprintf(stdout, "  checksum    = 0x%02X\n", checksum_read);
 
                 if (checksum_calculated != checksum_read) {
                 	cout << "Error: checksum does not match. ";
-                	if(log && debug) clog << "Error: checksum does not match. ";
 
                 	if(debug)
-                		fprintf(stderr, "Calculated = 0x%02X, Read = 0x%02X\n", checksum_calculated, checksum_read);
-                	exit(-1);
+                		fprintf(stdout, "Calculated = 0x%02X, Read = 0x%02X\n", checksum_calculated, checksum_read);
+                	return 0;
                 }
 
                 if (debug)
-                	cerr << "\n";
+                	cout << "\n";
 
                 if (record_type == 0x01)
                 	break;
             }
             else {
-            	cout << "Error: unexpected EOF.\n";
-            	if(log && debug) clog << "Error: unexpected EOF.\n";
-            	exit(-1);
+            	cout << "Error: unexpected EOF." << endl;
+            	return 0;
             }
 	}
 
     fclose(fp);
-    cout << "DONE!\n";
-    if(log && debug) clog << "DONE!\n";
+
+    cout << "DONE! ";
+    if(debug)
+    	cout << filled_locations << " memory locations read.";
+    cout << endl;
+
+    return filled_locations;
 }
 
 /* Write the filled cells in given memory struct
@@ -209,13 +210,10 @@ void write_inhx(memory *mem, char *outfile)
 	fp = fopen(outfile?outfile:"ofile.hex", "w");
 	if (fp == NULL) {
 		cout << "Error: cannot open destination file " << outfile << endl;
-		if(log && debug)
-			clog << "Error: cannot open destination file " << outfile << endl;
 		return;
 	}
 
 	cout << "Writing hex file...";
-	if(log && debug) clog << "Writing hex file...";
 
 	/* Write the program memory bytes */
 
@@ -271,5 +269,4 @@ void write_inhx(memory *mem, char *outfile)
 	fprintf(fp, ":00000001FF\n");
 	fclose(fp);
 	cout << "DONE!" << endl;
-	if(log && debug) clog << "DONE!" << endl;
 }

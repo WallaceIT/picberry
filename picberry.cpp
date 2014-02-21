@@ -46,9 +46,9 @@ volatile uint32_t	*gpio;
 
 bool debug=0, verify=1, client=0, log=0;
 
-int pic_clk=DEFAULT_PIC_CLK;
-int pic_data=DEFAULT_PIC_DATA;
-int pic_mclr=DEFAULT_PIC_MCLR;
+int pic_clk  = DEFAULT_PIC_CLK;
+int pic_data = DEFAULT_PIC_DATA;
+int pic_mclr = DEFAULT_PIC_MCLR;
 
 /* Hardware delay function by Gordon's Projects - WiringPi */
 void delay_us (unsigned int howLong)
@@ -70,18 +70,15 @@ int main(int argc, char *argv[])
 	char *infile = 0;
 	char *outfile = 0;
 	char *logfile = 0;
-	char *debuglogfile = 0;
 	char *pins = 0;
 	char *family = 0;
 	short family_index=1;
 	uint32_t count = 0, start = 0;
 	int option_index = 0;
 
-	setvbuf(stdout, NULL, _IONBF, 1024);
-
 	static struct option long_options[] = {
 			{"help", 0, 0, 'h'},
-			{"debug", 1, 0, 'D'},
+			{"debug", 0, 0, 'D'},
 			{"noverify", 0, 0, 'n'},
 			{"gpio", 1, 0, 'g'},
 			{"family", 1, 0, 'f'},
@@ -95,7 +92,7 @@ int main(int argc, char *argv[])
 			{"log", 1, 0, 'l'}
 	};
 
-	while ((opt = getopt_long(argc, argv, "hD::ng:c:s:f:r:w:ebdRxl::",long_options, &option_index)) != -1) {
+	while ((opt = getopt_long(argc, argv, "hDl:ng:c:s:f:r:w:ebdRx",long_options, &option_index)) != -1) {
 		switch (opt) {
 		case 'h':
 			usage();
@@ -106,7 +103,6 @@ int main(int argc, char *argv[])
 			break;
 		case 'D':
 			debug = 1;
-			debuglogfile = optarg;
 			break;
 		case 'n':
 			verify = 0;
@@ -119,7 +115,6 @@ int main(int argc, char *argv[])
 		    break;
 		case 'l':
 			log = 1;
-			client = 1;
 			logfile = optarg;
 			break;
 		case 'r':
@@ -149,7 +144,7 @@ int main(int argc, char *argv[])
 			function = 0x80;
 			break;
 		default:
-			clog << "\n";
+			cout << endl;
 			usage();
 			exit(1);
 		}
@@ -160,25 +155,22 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	if(!client)
-		cout << "picberry PIC Programmer ver. " << VERSION << endl;
-
-	/* If required, setup log file(s) */
-	if(log){
-		cout << "Redirecting output to log file..."<< endl;
-
-		freopen(logfile?logfile:"picberry-log.txt","w",stdout);
+	/* if not in log mode, disable stdout line buffering */
+	if(!log){
 		setvbuf(stdout, NULL, _IONBF, 1024);
-
-		if(debug){
-			freopen(debuglogfile?debuglogfile:"picberry-debug-log.txt","w",stderr);
-			clog << "picberry PIC Programmer ver. " << VERSION << endl;
-		}
 	}
 
+	/* If required, setup log file redirecting stdout */
+	if(log){
+		if(!client) cout << "picberry PIC Programmer v" << VERSION <<
+							" - Output to log file." << endl;
+		freopen(logfile?logfile:"picberry-log.txt","w",stdout);
+	}
+
+	cout << "picberry PIC Programmer v" << VERSION << endl;
+
 	/* Setup gpio pointer for direct register access */
-	if(debug)
-		clog << "Setting up i/o...\n";
+	if(debug) cout << "Setting up I/O...\n";
 
 	setup_io();
 
@@ -186,9 +178,9 @@ int main(int argc, char *argv[])
 	if(pins != 0)    	// if GPIO connections are specified in the options...
 	   sscanf(&pins[0], "%d,%d,%d", &pic_clk, &pic_data, &pic_mclr);
 	if(debug){
-	   clog << "PGC connected to pin " << pic_clk << endl;
-	   clog << "PGD connected to pin " << pic_data << endl;
-	   clog << "MCLR connected to pin " << pic_mclr << endl;
+	   cout << "PGC connected to pin " << pic_clk << endl;
+	   cout << "PGD connected to pin " << pic_data << endl;
+	   cout << "MCLR connected to pin " << pic_mclr << endl;
 	}
 
 	GPIO_IN(pic_clk); 	// NOTE: MUST use GPIO_IN before GPIO_OUT
@@ -217,15 +209,13 @@ int main(int argc, char *argv[])
 		family_index=1;
 	else{
 		cout << "ERROR: PIC family not correctly chosen." << endl;
-		if(log && debug)
-			clog << "ERROR: PIC family not correctly chosen." << endl;
-		exit(-1);
+		goto clean;
 	}
 
 	/* ENTER PROGRAM MODE */
 	pic[family_index] -> enter_program_mode();
 
-	if(pic[family_index] -> read_device_id())	// Read devide ID and setup memory
+	if(pic[family_index] -> read_device_id()){	// Read devide ID and setup memory
 
 		switch (function){
 			case 0x00:			// no function selected, exit
@@ -248,15 +238,21 @@ int main(int argc, char *argv[])
 			default:
 				cout << endl << endl << "Please select only one option" <<
 				"between -d, -b, -r, -w, -e." << endl;
-				if(log && debug)
-					clog << endl << endl << "Please select only one option" <<
-					"between -d, -b, -r, -w, -e." << endl;
 				break;
 		};
+	}
+	else{
+		if(client) cerr << "MSG@";
+			cerr << "ERROR: unknown/unsupported device "
+					"or programmer not connected." << endl;
+	}
 
 	pic[family_index]->exit_program_mode();
+	if(client) cerr << "END";
 
-	if(!client){
+clean:
+
+	if(!client && !log){
 		cout << "Press ENTER to exit program mode...";
 		fgetc(stdin);
 	}
@@ -303,15 +299,15 @@ void close_io(void)
         /* munmap GPIO */
         ret = munmap(gpio_map, BLOCK_SIZE);
         if (ret == -1) {
-                perror("munmap() failed");
-                exit(1);
+            perror("munmap() failed");
+            exit(1);
         }
 
         /* close /dev/mem */
         ret = close(mem_fd);
         if (ret == -1) {
-                perror("Cannot close /dev/mem");
-                exit(1);
+        	perror("Cannot close /dev/mem");
+            exit(1);
         }
 }
 
@@ -322,7 +318,7 @@ void pic_reset(void)
 
     GPIO_CLR(pic_mclr);		// remove VDD from MCLR pin
 	delay_us(1500);
-	if(!client){
+	if(!client && !log){
 		cout << "Press any key to release the reset...";
 		fgetc(stdin);
 		cout << endl;
@@ -339,7 +335,7 @@ void usage(void)
 "       -h                print help" << endl <<
 "       -x                silent mode" << endl <<
 "       -l [file]         redirect the output to log file(s)" << endl <<
-"       -D [file]         turn ON debug (log to file if logging is enabled)" << endl <<
+"       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection (optional)" << endl <<
 "       -f family         PIC family (dspic or 18fj) [defaults to dsPIC33F]" << endl <<
 "       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<

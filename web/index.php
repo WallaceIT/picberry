@@ -1,83 +1,3 @@
-<?php
-    $version=0.1;
-    $debug=0;
-
-    $path = "/usr/bin/";
-
-    if(isset($_POST['submitted'])){
-        
-        move_uploaded_file($_FILES["file"]["tmp_name"], $_FILES["file"]["name"]);
-        
-        $family=$_POST['family'];
-        $arguments = "-f $family -l picberry-log.txt -w ".$_FILES['file']['name'];
-        
-        if(isset($_POST['debug']))
-            $debug=1;
-            $arguments .= " -D picberry-debug-log.txt";
-        if(isset($_POST['skipverify']))
-            $arguments .= " --noverify";
-        
-        $cmd = $path."picberry ".$arguments;
-        
-        if(shell_exec("pgrep picberry") == ""){
-            
-            if(file_exists("picberry-log.txt"))
-                unlink("picberry-log.txt");
-            if(file_exists("picberry-debug-log.txt"))
-                unlink("picberry-debug-log.txt");
-            
-            exec($cmd." > /dev/null &");
-            unset($result);
-        }
-        else $result = "A picberry istance is already running, please wait.";
-        
-    }
-    if(isset($_POST['reset'])){
-        
-        $arguments = "-Rx";
-        $cmd = $path."picberry ".$arguments;
-        
-        if(shell_exec("pgrep picberry") == ""){
-            exec($cmd." > /dev/null &");
-        }
-    }
-    elseif(isset($_POST['dumpconfregs'])){
-        
-        $family=$_POST['family'];
-        $arguments = "-f $family -dx";
-            
-        $cmd = $path."picberry ".$arguments;
-        
-        if(shell_exec("pgrep picberry") == ""){
-            $result = shell_exec($cmd);
-        }
-        else $result = "A picberry istance is already running, please wait.";
-        
-        echo $result;
-        return(0);
-    }
-    elseif(isset($_POST['read'])){
-
-        $family=$_POST['family'];
-        $arguments = "-f $family -l picberry-log.txt -r ofile.hex";
-
-        $cmd = $path."picberry ".$arguments;
-
-        if(shell_exec("pgrep picberry") == ""){
-            if(file_exists("picberry-log.txt"))
-                unlink("picberry-log.txt");
-            if(file_exists("ofile.hex"))
-                unlink("ofile.hex");
-            exec($cmd." > /dev/null &");
-            $result = 0;
-        }
-        else $result = 1;
-
-        echo $result;
-        return(0);
-    }
-        
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -95,26 +15,51 @@
             return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1'+ breakTag +'$2');
         }
         
-        <?php if(isset($_POST['submitted']))
-            echo "timer=setInterval(checkServerForFile,800);";
+        function progress(percent, element) {
+            var progressBarWidth = percent * $(element).width() / 100;
+            $(element).find('div').animate({ width: progressBarWidth }, 500).html(percent + "%&nbsp;");
+            if(percent == 100){
+                $(element).find('div').css("background-color","white");
+                $(element).find('div').css("color","black");
+            }
+        }
+        
+        <?php if(isset($_GET['s']))
+            echo "checkServerForState(-1);";
         ?>
 
         var oldresult = 0;
         var counter = 0;
         
-        function checkServerForFile() {
+        function checkServerForState(state) {
             $.ajax({
                 type: "POST",
                 cache: false,
-                url: "picberry-log.txt",                   
-                success: function (result) {                
-                    $('#log-container').html(nl2br(result));
-                    if(result==oldresult) counter++;
-                    else counter = 0;
-                    if(counter==10){
-                        clearInterval(timer);
-                    };
-                    oldresult = result;
+                data: {
+                    query: 1,
+                    state: state
+                },
+                url: "actions.php",                   
+                success: function (result) {
+                    var splitted = result.split('@');
+                    if(splitted[0] == 'MSG'){
+                        $('#warning-container').append(splitted[1]);
+                        return 0;
+                    }
+                    else if((splitted[0] == 'WRT' || splitted[0] == 'VRF') && splitted[1] != 'SKP')
+                        progress(splitted[1], '#'+splitted[0]+'-progressBar');
+                    else if(splitted[0] == 'PRT')
+                        $('#log-container').append(splitted[1]+' detected');
+                    if(result == 'VRF@100' || result == 'VRF@SKP'){
+                        if(result == 'VRF@SKP')
+                            $('#VRF-progressBar').find('div').html('SKIPPED');
+                        $('#link-container').append('<hr><b>PIC programmed!</b>');
+                        <?php if(isset($_GET['d'])){?>
+                        $('#link-container').append('<br><br><a href="picberry-log.txt">View debug log</a>');
+                        <?php ;} ?>
+                        return 0;
+                    }
+                    checkServerForState(result);
                 ;}                
             });
         };
@@ -128,50 +73,10 @@
             $.ajax({
                 type: "POST",
                 cache: false,
-                url: "index.php",        
+                url: "actions.php",        
                 data: {reset:1}                
             });
-        });
-        
-        $("#button-confregs").click(function(){
-            $.ajax({
-                type: "POST",
-                cache: false,
-                url: "index.php",        
-                data: {
-                    dumpconfregs:1,
-                    family:$('input[name="family"]').val()
-                },
-                success: function (result) {
-                    $('#log-container').html(nl2br(result));
-                    $(".modalDialog").css("opacity",1);
-                    $(".modalDialog").css("pointer-events","auto");
-                ;}                
-            });
-        });
-        
-        $("#button-read").click(function(){
-            $.ajax({
-                type: "POST",
-                cache: false,
-                url: "index.php",        
-                data: {
-                    read:1,
-                    family:$('input[name="family"]').val()
-                },
-                success: function (result) {
-                    if(result != 0){
-                        $('#warning-container').html("A picberry istance is already running, please wait.");
-                    }
-                    else $('#warning-container').html('<?php echo "Picberry PIC programmer v".$version; ?>');
-                    timer=setInterval(checkServerForFile,800);
-                    $("#link-container").html('<a href="ofile.hex" target="_blank">Download HEX file</a>');
-                    $(".modalDialog").css("opacity",1);
-                    $(".modalDialog").css("pointer-events","auto");
-                ;}                
-            });
-        });
-        
+        });        
     };
     </script>
 </head>
@@ -179,10 +84,8 @@
 <body>
     <div id="container">
         <div id="inner-container">
-            <p>Picberry Web Interface</p>
-            <hr>
-            <br>
-            <form id="uploadForm" action="index.php#openModal" method="POST" enctype="multipart/form-data" accept-charset="UTF-8">
+            <p><b>PICBERRY Web Interface</b></p>
+            <form id="uploadForm" action="actions.php" method="POST" enctype="multipart/form-data" accept-charset="UTF-8">
                 <input type="radio" name="family" value="dspic" checked> dsPIC
                 <input type="radio" name="family" value="18fj"> PIC18FxxJ
                 <br><br>
@@ -200,32 +103,39 @@
             </form>
             <br><hr><br>
             <input type="button" id="button-reset" value="Reset">
-            <input type="button" id="button-read" value="Read">
-            <input type="button" id="button-confregs" value="View configuration regs">
         </div>
     </div>
 
         <div id="openModal" class="modalDialog">
             <div>
                 <a href="#close" title="Close" id="closeModal">X</a>
-                <p><b>Programmer's Log</b></p>
+                <p>picberry PIC programmer v0.1</p>
+                <hr>
                 <div id="warning-container">
                     <?php
-                        if(isset($result)) echo $result;
-                        else echo "Picberry PIC programmer v".$version;    
+                        if(isset($_GET['s']) && $_GET['s'] == 1)
+                            echo "<br>A picberry istance is already running, please wait.<br>";
                     ?>
                 </div>
                 <div id="log-container"></div>
-                <div id="link-container">
-                    <?php if($debug) echo '<a href="picberry-debug-log.txt" target="_blank">Download debug log</a>'; ?>
+                <div id="progbar-container">
+                    <table>
+                        <tr>
+                            <td width="20%">Write: </td>
+                            <td width="80%"><div class="progressBar" id="WRT-progressBar"><div></div></div></td>
+                        </tr>
+                        <tr>
+                            <td>Verify: </td>
+                            <td><div class="progressBar" id="VRF-progressBar"><div></div></div></td>
+                        </tr>
+                    </table>
                 </div>
+                <div id="link-container"></div>
             </div>
         </div>
     
-    <div id="version-container">picberry v<?php echo $version;?></div>
-    <div id="c-container">&copy; 2014 Francesco Valla</div>
-    <div class="hidden" id="reset-container">
-    
+    <div id="c-container">
+        &copy; 2014 Francesco Valla - hosted on <a href="https://github.com/WallaceIT/picberry">Github</a>
     </div>
 </body>
 </html>
