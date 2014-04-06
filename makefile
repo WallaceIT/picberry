@@ -8,7 +8,7 @@ TARGET = picberry
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
 
-GCCVERSIONG := $(shell expr `gcc -dumpversion | cut -f2 -d.` \>= 7)
+GCCVERSION := $(shell expr `gcc -dumpversion | cut -f2 -d.` \>= 7)
 
 ifeq "$(GCCVERSION)" "0"
     CC = g++-4.7
