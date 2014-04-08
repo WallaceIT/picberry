@@ -133,8 +133,8 @@ uint16_t dspic::read_data(void)
 	for (i = 0; i < 16; i++) {
 		GPIO_SET(pic_clk);
 		delay_us(DELAY_P1B);
-		GPIO_CLR(pic_clk);
 		data |= ( GPIO_LEV(pic_data) & 0x00000001 ) << i;
+		GPIO_CLR(pic_clk);
 		delay_us(DELAY_P1A);
 	}
 
