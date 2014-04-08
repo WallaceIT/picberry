@@ -28,11 +28,11 @@ To build picberry, after cloning the repository, launch
 for Raspberry Pi target or
 
 	make a10
-	
+
 for A10 target.
 
 Then launch
-	
+
 	sudo make install
 
 to install it to /usr/bin.
@@ -47,13 +47,13 @@ Compilation is possible either directly on Raspberry Pi / A10 or in a cross-buil
 # Usage of picberry
 
 	picberry [options]
-       
+
 Programming Options
 
 	-h                print help
 	-D                turn ON debug
-	-g PGC,PGD,MCLR   GPIO selection, default if not present
-	-f family	  	  PIC family (dspic or 18fj)
+	-g PGC,PGD,MCLR   GPIO selection in form PORT:NUM, default if not present
+	-f family		 PIC family (dspic or 18fj)
 	-i file           input file
 	-o file           output file (default: ofile.hex)
 
@@ -67,9 +67,13 @@ Runtime Options
 
        -R                reset
 
-For Example, to connect the PIC to GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write on a dsPIC33FJ128GP802 the file fw.hex:
+For Example, to connect the PIC to RPi GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write on a dsPIC33FJ128GP802 the file fw.hex:
 
 	picberry -w -g 11,9,22 -f dspic -i fw.hex
+
+To connect the PIC to A10 GPIOs B15 (PGC), B17 (PGD), I15 (MCLR):
+
+	picberry -w -g B:15,B:17,I:15 -f dspic -i fw.hex
 
 # Hardware
 
@@ -83,13 +87,13 @@ If not specified in the command line, the default GPIOs <-> PIC connections for 
 	PGC  <-> GPIO23
 	PGD  <-> GPIO24
 	MCLR <-> GPIO18
-	
+
 and for the Allwinner A10
 
 	PGC  <-> PB15
 	PGD  <-> PB17
 	MCLR <-> PB12
-	
+
 PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't set the port using a command line option (yet?).
 
 Two setup photos can be find in the [Wiki] (../../wiki/Setup Images).
@@ -100,7 +104,7 @@ To use the web client, copy the `web` folder in a position accessible from your 
 
 NOTE that the web client is in beta stage and has only been tested under [mongoose](https://github.com/cesanta/mongoose).
 Please report any issues you will find!
-	
+
 # References
 
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)

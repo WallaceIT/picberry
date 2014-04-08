@@ -3,36 +3,33 @@
 #define OFFSET			  	0x00000800
 #define BLOCK_SIZE			0x00002000
 
-/* PORT OFFSET:
- *
- * PA -> 0x00
- * PB -> 0x24
- * PC -> 0x48
- * PD -> 0x6C
- * PE -> 0x90
- * PF -> 0xB4
- * PG -> 0xD8
- * PH -> 0xFC
- * PI -> 0x120
- *
- * Only pins on the same port are allowed!
- *
- */
-#define PORTOFFSET	0x24
+/* PORT OFFSETs */
+#define PA  0x00
+#define PB  0x24
+#define PC  0x48
+#define PD  0x6C
+#define PE  0x90
+#define PF  0xB4
+#define PG  0xD8
+#define PH  0xFC
+#define PI  0x120
 
-#define SET			0x10
-#define PULL		0x1C
+#define PORTOFFSET  0x24
 
+#define SET         0x10
+#define PULL        0x1C
 
 /* GPIO setup macros. Always use GPIO_IN(x) before using GPIO_OUT(x) */
-#define GPIO_IN(g)    *(int*)((char*)gpio+OFFSET+PORTOFFSET+(((int)g/8)*4)) &= ~(0x00000007<<(((int)g%8)*4))
-#define GPIO_OUT(g)   *(int*)((char*)gpio+OFFSET+PORTOFFSET+(((int)g/8)*4)) |= (0x00000001<<(((int)g%8)*4))
+#define GPIO_IN(g)    *(int*)((char*)gpio+OFFSET+(g>>8)+(((int)(g&0xFF)/8)*4)) &= ~(0x07<<(((int)(g&0xFF)%8)*4))
+#define GPIO_OUT(g)   *(int*)((char*)gpio+OFFSET+(g>>8)+(((int)(g&0xFF)/8)*4)) |= (0x01<<(((int)(g&0xFF)%8)*4))
 
-#define GPIO_SET(g)   *(int*)((char*)gpio+OFFSET+PORTOFFSET+SET) |= 1<<(g)
-#define GPIO_CLR(g)   *(int*)((char*)gpio+OFFSET+PORTOFFSET+SET) &= ~(1<<(g))
-#define GPIO_LEV(g)   (*(int*)((char*)gpio+OFFSET+PORTOFFSET+SET) >> g) & 0x1
+#define GPIO_SET(g)   *(int*)((char*)gpio+OFFSET+(g>>8)+SET) |= 1<<(int)(g&0xFF)
+#define GPIO_CLR(g)   *(int*)((char*)gpio+OFFSET+(g>>8)+SET) &= ~(1<<(int)(g&0xFF))
+#define GPIO_LEV(g)   (*(int*)((char*)gpio+OFFSET+(g>>8)+SET) >> (int)(g&0xFF)) & 0x1
 
 /* default GPIO <-> PIC connections */
-#define DEFAULT_PIC_CLK    15	/* PGC - Output - PB15 */
-#define DEFAULT_PIC_DATA   17	/* PGD - I/O - PB17 */
-#define DEFAULT_PIC_MCLR   12	/* MCLR - Output - PB12 */
+#define DEFAULT_PIC_CLK    (int)((PB<<8)|15)   /* PGC - Output - PB15 */
+#define DEFAULT_PIC_DATA   (int)((PB<<8)|17)   /* PGD - I/O - PB17 */
+#define DEFAULT_PIC_MCLR   (int)((PI<<8)|15)   /* MCLR - Output - PB12 */
+
+#define PORTNAME(g)        (char)((int)(g>>8)/PORTOFFSET+'A')

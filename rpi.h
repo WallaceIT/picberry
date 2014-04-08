@@ -25,14 +25,17 @@
 #define BLOCK_SIZE         (256)
 
 /* GPIO setup macros. Always use GPIO_IN(x) before using GPIO_OUT(x) */
-#define GPIO_IN(g)    *(gpio+((g)/10))   &= ~(7<<(((g)%10)*3))
-#define GPIO_OUT(g)   *(gpio+((g)/10))   |=  (1<<(((g)%10)*3))
+#define GPIO_IN(g)    *(gpio+((g&0xFF)/10))   &= ~(7<<(((g&0xFF)%10)*3))
+#define GPIO_OUT(g)   *(gpio+((g&0xFF)/10))   |=  (1<<(((g&0xFF)%10)*3))
 
-#define GPIO_SET(g)   *(gpio+7)  = 1<<(g)
-#define GPIO_CLR(g)   *(gpio+10) = 1<<(g)
-#define GPIO_LEV(g)   (*(gpio+13) >> (g)) & 0x1	/* reads pin level */
+#define GPIO_SET(g)   *(gpio+7)  = 1<<(g&0xFF)
+#define GPIO_CLR(g)   *(gpio+10) = 1<<(g&0xFF)
+#define GPIO_LEV(g)   (*(gpio+13) >> (g&0xFF)) & 0x1 /* reads pin level */
 
 /* default GPIO <-> PIC connections */
-#define DEFAULT_PIC_CLK    23	/* PGC - Output */
-#define DEFAULT_PIC_DATA   24	/* PGD - I/O */
-#define DEFAULT_PIC_MCLR   18	/* MCLR - Output */
+#define DEFAULT_PIC_CLK    23   /* PGC - Output */
+#define DEFAULT_PIC_DATA   24   /* PGD - I/O */
+#define DEFAULT_PIC_MCLR   18   /* MCLR - Output */
+
+#define PORTNAME(g)
+#define PORTOFFSET  0
