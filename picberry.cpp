@@ -37,7 +37,8 @@
 #include <fstream>
 
 #include "common.h"
-#include "dspic.h"
+#include "dspic33f.h"
+#include "dspic33e.h"
 #include "pic18fj.h"
 
 int                 mem_fd;
@@ -72,7 +73,6 @@ int main(int argc, char *argv[])
     char *logfile = 0;
     char *pins = 0;
     char *family = 0;
-    short family_index=1;
     uint32_t count = 0, start = 0;
     int option_index = 0;
 
@@ -218,39 +218,41 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    Pic *pic[2] = {new dspic(), new pic18fj()};
+    Pic *pic = new dspic33f();
 
-    if(family == 0 || strcmp(family, "dspic") == 0)
-        family_index=0;
-    else if(strcmp(family,"18fj") == 0)
-        family_index=1;
+    if(family == 0 || strcmp(family, "dspic33f") == 0);
+        //pic = new dspic33f(); default case, nothing to do
+    else if(strcmp(family,"dspic33e") == 0)
+        pic = new dspic33e();
+	else if(strcmp(family,"18fj") == 0)
+        pic = new pic18fj();
     else{
         cout << "ERROR: PIC family not correctly chosen." << endl;
         goto clean;
     }
 
     /* ENTER PROGRAM MODE */
-    pic[family_index] -> enter_program_mode();
+    pic -> enter_program_mode();
 
-    if(pic[family_index] -> read_device_id()){  // Read devide ID and setup memory
+    if(pic -> read_device_id()){  // Read devide ID and setup memory
 
         switch (function){
             case 0x00:          // no function selected, exit
                 break;
             case 0x01:
-                pic[family_index]->read(outfile,start,count);
+                pic->read(outfile,start,count);
                 break;
             case 0x02:
-                pic[family_index]->write(infile);
+                pic->write(infile);
                 break;
             case 0x04:
-                pic[family_index]->bulk_erase();
+                pic->bulk_erase();
                 break;
             case 0x08:
-                pic[family_index]->blank_check();
+                pic->blank_check();
                 break;
             case 0x10:
-                pic[family_index]->dump_configuration_registers();
+                pic->dump_configuration_registers();
                 break;
             default:
                 cout << endl << endl << "Please select only one option" <<
@@ -264,7 +266,7 @@ int main(int argc, char *argv[])
                     "or programmer not connected." << endl;
     }
 
-    pic[family_index]->exit_program_mode();
+    pic->exit_program_mode();
     if(client) cerr << "END";
 
 clean:
@@ -277,8 +279,8 @@ clean:
     GPIO_IN(pic_mclr);      /* MCLR as input, puts the output driver in Hi-Z */
 
     close_io();
-    free(pic[family_index]->mem.location);
-    free(pic[family_index]->mem.filled);
+    free(pic->mem.location);
+    free(pic->mem.filled);
 
     fclose(stderr);
     fclose(stdout);
@@ -354,7 +356,7 @@ void usage(void)
 "       -l [file]         redirect the output to log file(s)" << endl <<
 "       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)" << endl <<
-"       -f family         PIC family (dspic or 18fj) [defaults to dsPIC33F]" << endl <<
+"       -f family         PIC family (dspic33e, dspic33f, 18fj) [default: dspic33f]" << endl <<
 "       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<
 "       -w file.hex       bulk erase and write chip" << endl <<
 "       -n                skip memory verification after writing" << endl <<

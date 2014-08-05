@@ -11,11 +11,11 @@ You should have received a copy of the GNU General Public License along with thi
 # Overview
 
 picberry is a Raspberry Pi/Allwinner A10 PIC programmer using GPIOs that doesn't require additional programming hardware.
-It theorically supports dsPIC33F/PIC24H and PIC18FxxJxx families, but only dsPIC33FJ128GP802 has been tested.
+It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H and PIC18FxxJxx families, but only some PICs have been tested.
 
 # Building and Installing picberry
 
-picberry is written in C++11, so it requires g++ version 4.7.
+picberry is written in C++11, so it requires at least g++ version 4.7.
 
 On Raspian/Debian install it entering:
 
@@ -42,7 +42,7 @@ To change destination prefix use PREFIX=, e.g.
 	sudo make install PREFIX=/usr/local
 
 
-Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment, using g++ 4.7.
+Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment.
 
 # Usage of picberry
 
@@ -53,7 +53,7 @@ Programming Options
 	-h                print help
 	-D                turn ON debug
 	-g PGC,PGD,MCLR   GPIO selection in form PORT:NUM, default if not present
-	-f family		 PIC family (dspic or 18fj)
+	-f family		  PIC family (dspic33e, dspic33f or 18fj)
 	-i file           input file
 	-o file           output file (default: ofile.hex)
 
@@ -69,11 +69,11 @@ Runtime Options
 
 For Example, to connect the PIC to RPi GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write on a dsPIC33FJ128GP802 the file fw.hex:
 
-	picberry -w -g 11,9,22 -f dspic -i fw.hex
+	picberry -w -g 11,9,22 -f dspic33f -i fw.hex
 
 To connect the PIC to A10 GPIOs B15 (PGC), B17 (PGD), I15 (MCLR):
 
-	picberry -w -g B:15,B:17,I:15 -f dspic -i fw.hex
+	picberry -w -g B:15,B:17,I:15 -f dspic33f -i fw.hex
 
 # Hardware
 
@@ -107,6 +107,7 @@ Please report any issues you will find!
 
 # References
 
+- [dsPIC33E/PIC24E Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70619B.pdf)
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
 

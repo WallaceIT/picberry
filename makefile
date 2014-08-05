@@ -3,7 +3,7 @@
 # 
 #
 CC = g++
-CFLAGS  = -Wall -O2 -s -std=c++11
+CFLAGS = -Wall -O2 -s -std=c++11
 TARGET = picberry
 PREFIX = /usr
 BINDIR = $(PREFIX)/bin
@@ -24,17 +24,20 @@ raspberrypi: picberry
 	
 a10: picberry
 
-picberry:  inhx.o dspic.o pic18fj.o picberry.o
-	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic.o pic18fj.o
+picberry:  inhx.o dspic33f.o dspic33e.o pic18fj.o picberry.o
+	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic33f.o dspic33e.o pic18fj.o
 
 inhx.o:  inhx.cpp common.h
 	$(CC) $(CFLAGS) -c inhx.cpp
 
-picberry.o:  picberry.cpp common.h dspic.h pic18fj.h
+picberry.o:  picberry.cpp common.h dspic33f.h dspic33e.h pic18fj.h
 	$(CC) $(CFLAGS) -c picberry.cpp
 
-dspic.o:  dspic.cpp common.h dspic.h
-	$(CC) $(CFLAGS) -c dspic.cpp
+dspic33f.o:  dspic33f.cpp common.h dspic33f.h
+	$(CC) $(CFLAGS) -c dspic33f.cpp
+
+dspic33e.o:  dspic33e.cpp common.h dspic33e.h
+	$(CC) $(CFLAGS) -c dspic33e.cpp
 
 pic18fj.o: pic18fj.cpp common.h pic18fj.h
 	$(CC) $(CFLAGS) -c pic18fj.cpp

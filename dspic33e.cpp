@@ -24,7 +24,7 @@
 #include <unistd.h>
 
 #include "common.h"
-#include "dspic.h"
+#include "dspic33e.h"
 
 /* delays (in microseconds; nanoseconds are rounded to 1us) */
 #define DELAY_P1   		1		// 200ns
@@ -41,7 +41,7 @@
 #define DELAY_P9A		10		// 10us
 #define DELAY_P9B		15		// 15us - 23us max!
 #define DELAY_P10		1		// 400ns
-#define DELAY_P11		330000	// 330ms
+#define DELAY_P11		116000	// 116ms
 #define DELAY_P12		19500	// 19.5ms
 #define DELAY_P13		1280	// 1.28ms
 #define DELAY_P14		1		// 1us MAX!
@@ -58,11 +58,11 @@
 #define reset_pc() send_cmd(0x040200)
 #define send_nop() send_cmd(0x000000)
 
-unsigned int counter=0;
-uint16_t nvmcon;
+static unsigned int counter=0;
+static uint16_t nvmcon;
 
 /* Send a 24-bit command to the PIC (LSB first) through a SIX instruction */
-void dspic::send_cmd(uint32_t cmd)
+void dspic33e::send_cmd(uint32_t cmd)
 {
 	uint8_t i;
 
@@ -94,8 +94,24 @@ void dspic::send_cmd(uint32_t cmd)
 
 }
 
+/* Send five NOPs (should be with a frequency greater than 2MHz...) */
+inline void dspic33e::send_prog_nop(void)
+{
+	uint8_t i;
+
+	GPIO_CLR(pic_data);
+
+	/* send 5 NOP commands */
+	for (i = 0; i < 140; i++) {
+		GPIO_SET(pic_clk);
+		delay_us(DELAY_P1A);
+		GPIO_CLR(pic_clk);
+		delay_us(DELAY_P1B);
+	}
+}
+
 /* Read 16-bit data word from the PIC (LSB first) through a REGOUT inst */
-uint16_t dspic::read_data(void)
+uint16_t dspic33e::read_data(void)
 {
 	uint8_t i;
 	uint16_t data = 0;
@@ -144,7 +160,7 @@ uint16_t dspic::read_data(void)
 }
 
 /* enter program mode */
-void dspic::enter_program_mode(void)
+void dspic33e::enter_program_mode(void)
 {
 	int i;
 
@@ -188,7 +204,7 @@ void dspic::enter_program_mode(void)
 }
 
 /* exit program mode */
-void dspic::exit_program_mode(void)
+void dspic33e::exit_program_mode(void)
 {
 	GPIO_CLR(pic_clk);
 	GPIO_CLR(pic_data);
@@ -198,33 +214,45 @@ void dspic::exit_program_mode(void)
 }
 
 /* read the device ID and revision; returns only the id */
-bool dspic::read_device_id(void)
+bool dspic33e::read_device_id(void)
 {
 	bool found = 0;
 
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	send_cmd(0x200FF0);
-	send_cmd(0x880190);
-	send_cmd(0xEB0300);
-	send_cmd(0x207847);
+	send_cmd(0x8802A0);
+	send_cmd(0x200006);
+	send_cmd(0x20F887);
 	send_nop();
 
 	send_cmd(0xBA0BB6);
+	send_nop();
+	send_nop();
+	send_nop();
 	send_nop();
 	send_nop();
 	device_id = read_data();
 	if(debug)
 		fprintf(stdout,"Device ID: 0x%x\n", device_id );
 
-	send_cmd(0xBA0BB6);
-	send_nop();
-	send_nop();
-	if(debug)
-		fprintf(stdout,"Revision: 0x%x\n", read_data());
+	if(debug){
+		send_cmd(0xBA0BB6);
+		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 
+		fprintf(stdout,"Revision: 0x%x\n", read_data());
+	}
+	
 	reset_pc();
 	send_nop();
 
@@ -248,8 +276,8 @@ bool dspic::read_device_id(void)
 
 }
 
-/* check if the device is blank */
-void dspic::blank_check(void)
+/* Check if the device is blank */
+void dspic33e::blank_check(void)
 {
 	uint32_t addr;
 	unsigned short i;
@@ -265,8 +293,12 @@ void dspic::blank_check(void)
 	counter=0;
 
 	/* exit reset vector */
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	/* Output data to W0:W5; repeat until all desired code memory is read. */
@@ -274,48 +306,76 @@ void dspic::blank_check(void)
 
 		if((addr & 0x0000FFFF) == 0){
 			send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
-			send_cmd(0x880190);									// MOV W0, TBLPAG */
+			send_cmd(0x8802A0);									// MOV W0, TBLPAG
 			send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
 		}
 
 		/* Fetch the next four memory locations and put them to W0:W5 */
-		send_cmd(0xEB0380);
+		send_cmd(0xEB0380);	// CLR W7
 		send_nop();
 		send_cmd(0xBA1B96);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBADBB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBADBD6);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBA1BB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBA1B96);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBADBB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBADBD6);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBA0BB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 
 		/* read six data words (16 bits each) */
 		for(i=0; i<6; i++){
-			send_cmd(0x883C20 + i);
-			send_nop();
+			send_cmd(0x887C40 + i);
 			send_nop();
 			raw_data[i] = read_data();
 			send_nop();
 		}
 
+		send_nop();
+		send_nop();
+		send_nop();
 		reset_pc();
+		send_nop();
+		send_nop();
 		send_nop();
 
 		/* store data correctly */
@@ -333,13 +393,19 @@ void dspic::blank_check(void)
 			counter = addr*100/mem.code_memory_size;
 		}
 
-		for(i=0; i<8; i++)
+		for(i=0; i<8; i++){
+
+			if(debug)			
+				fprintf(stdout, "\n addr = 0x%06X data = 0x%04X",
+								(addr+i), data[i]);
+
 			if ((i%2 == 0 && data[i] != 0xFFFF) || (i%2 == 1 && data[i] != 0x00FF)) {
 				if(!log && !debug) cout << "\b\b\b\b\b";
 				cout << "chip is not blank!" << endl;
 				addr = mem.code_memory_size + 10;
 				break;
 			}
+		}
 	}
 
 	if(addr <= (mem.code_memory_size + 8)){
@@ -347,37 +413,58 @@ void dspic::blank_check(void)
 		cout << "chip is blank!" << endl;
 	};
 
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 }
 
 /* Bulk erase the chip */
-void dspic::bulk_erase(void)
+void dspic33e::bulk_erase(void)
 {
 
+    send_nop();
+    send_nop();
+    send_nop();
     reset_pc();
-    reset_pc();
+    send_nop();
+    send_nop();
     send_nop();
 
 	cout << "Performing a Bulk Erase...";
 
-	send_cmd(0x2404FA);
-	send_cmd(0x883B0A);
+	send_cmd(0x2400EA);
+	send_cmd(0x88394A);
+	send_nop();
+	send_nop();
 
-	send_cmd(0xA8E761);
+	send_cmd(0x200551);
+	send_cmd(0x883971);
+	send_cmd(0x200AA1);
+	send_cmd(0x883971);
+	send_cmd(0xA8E729);
 	send_nop();
 	send_nop();
 	send_nop();
-	send_nop();
+
+	delay_us(DELAY_P11);
 
 	/* wait while the erase operation completes */
 	do{
-		send_cmd(0x803B00);
-		send_cmd(0x883C20);
+		send_cmd(0x803940);
+		send_nop();		
+		send_cmd(0x887C40);
 		send_nop();
 		nvmcon = read_data();
+		send_nop();
+		send_nop();
+		send_nop();
 		reset_pc();
+		send_nop();
+		send_nop();
 		send_nop();
 	} while((nvmcon & 0x8000) == 0x8000);
 
@@ -385,7 +472,7 @@ void dspic::bulk_erase(void)
 }
 
 /* Read PIC memory and write the contents to a .hex file */
-void dspic::read(char *outfile, uint32_t start, uint32_t count)
+void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 {
 	uint32_t addr, startaddr, stopaddr;
 	uint16_t data[8], raw_data[6];
@@ -405,8 +492,12 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 	counter=0;
 
 	/* exit reset vector */
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	/* Output data to W0:W5; repeat until all desired code memory is read. */
@@ -414,49 +505,77 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 
 		if((addr & 0x0000FFFF) == 0 || startaddr != 0){
 			send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
-			send_cmd(0x880190);									// MOV W0, TBLPAG
+			send_cmd(0x8802A0);									// MOV W0, TBLPAG
 			send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
 			startaddr = 0;
 		}
 
 		/* Fetch the next four memory locations and put them to W0:W5 */
-		send_cmd(0xEB0380);
+		send_cmd(0xEB0380);	// CLR W7
 		send_nop();
 		send_cmd(0xBA1B96);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBADBB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBADBD6);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBA1BB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBA1B96);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBADBB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		send_cmd(0xBADBD6);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		send_cmd(0xBA0BB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 
 		/* read six data words (16 bits each) */
 		for(i=0; i<6; i++){
-			send_cmd(0x883C20 + i);
-			send_nop();
+			send_cmd(0x887C40 + i);
 			send_nop();
 			raw_data[i] = read_data();
 			send_nop();
 		}
 
+		send_nop();
+		send_nop();
+		send_nop();
 		reset_pc();
+		send_nop();
+		send_nop();
 		send_nop();
 
 		/* store data correctly */
@@ -496,20 +615,27 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 		/* TODO: checksum */
 	}
 
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	send_cmd(0x200F80);
-	send_cmd(0x880190);
-	send_cmd(0xEB0300);
-	send_cmd(0x207847);
+	send_cmd(0x8802A0);
+	send_cmd(0x200046);
+	send_cmd(0x20F887);
 	send_nop();
 
-	addr = 0x00F80000;
+	addr = 0x00F80004;
 
-	for(i=0; i<12; i++){
+	for(i=0; i<8; i++){
 		send_cmd(0xBA0BB6);
+		send_nop();
+		send_nop();
+		send_nop();
 		send_nop();
 		send_nop();
 		data[0] = read_data();
@@ -519,6 +645,14 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 		}
 	}
 
+	send_nop();
+	send_nop();
+	send_nop();
+	reset_pc();
+	send_nop();
+	send_nop();
+	send_nop();
+
 	if(!log && !debug) cout << "\b\b\b\b\b";
 	cout << "DONE! " << endl;
 	if(client) cerr << "RED@100" << endl;
@@ -526,17 +660,18 @@ void dspic::read(char *outfile, uint32_t start, uint32_t count)
 }
 
 /* Write contents of the .hex file to the PIC */
-void dspic::write(char *infile)
+void dspic33e::write(char *infile)
 {
-	uint8_t i,j,k,p;
-	bool skip, skipped=0;
+	uint8_t i,j,p;
+	uint16_t k;
+	bool skip;
 	uint32_t data[8],raw_data[6];
 	uint32_t addr = 0;
 
 	unsigned int filled_locations=1;
 
-	const char *regname[] = {"FBS","FSS","FGS","FOSCSEL","FOSC","FWDT","FPOR",
-								"FICD","FUID0","FUID1","FUID2","FUID3"};
+	const char *regname[] = {"FGS","FOSCSEL","FOSC","FWDT","FPOR",
+							"FICD","FAS","FUID0"};
 
 	filled_locations = read_inhx(infile, &mem);
 	if(!filled_locations) return;
@@ -544,8 +679,12 @@ void dspic::write(char *infile)
 	bulk_erase();
 
 	/* Exit reset vector */
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	/* WRITE CODE MEMORY */
@@ -554,27 +693,29 @@ void dspic::write(char *infile)
 	if(client) cerr << "WRT@00" << endl;
 	counter=0;
 
-	send_nop();
-	send_cmd(0x24001A);
-	send_cmd(0x883B0A);
-
 	for (addr = 0; addr < mem.code_memory_size; ){
 
 		skip = 1;
 
-		for(k=0; k<128; k+=2)
+		for(k=0; k<256; k+=2)
 			if(mem.filled[addr+k]) skip = 0;
 
 		if(skip){
-			addr=addr+128;
+			addr=addr+256;
 			continue;
 		}
 
-		send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );
-		send_cmd(0x880190);
-		send_cmd(0x200007 | ((addr & 0x0000FFFF) << 4) );
+		/* Set the NVMADRU/NVMADR register-pair to point to the correct row */
+		send_cmd(0x200002 | ((addr & 0x0000FFFF) << 4) );
+		send_cmd(0x200003 | ((addr & 0x00FF0000) >> 12) );
+		send_cmd(0x883963);
+		send_cmd(0x883952);
 
-		for(p=0; p<16; p++){
+		send_cmd(0x200FAC);
+		send_cmd(0x8802AC);
+		send_cmd(0x200007);
+
+		for(p=0; p<32; p++){
 
 			for(j=0;j<8;j++){
 				if (mem.filled[addr+j]) data[j] = mem.location[addr+j];
@@ -620,26 +761,43 @@ void dspic::write(char *infile)
 
 			addr = addr+8;
 		}
+		
+		/* Set the NVMCON to program 128 instruction words */
+		send_cmd(0x24002A);
+		send_cmd(0x88394A);
+		send_nop();
+		send_nop();
 
-		send_cmd(0xA8E761);
-		send_nop();
-		send_nop();
-		send_nop();
-		send_nop();
+		/* Initiate the write cycle */
+		send_cmd(0x200551);
+		send_cmd(0x883971);
+		send_cmd(0x200AA1);
+		send_cmd(0x883971);
+		send_cmd(0xA8E729);
+		send_prog_nop();	// FIXME: timing???
+
+		delay_us(DELAY_P13);
 
 		do{
-			send_cmd(0x803B00);
-			send_cmd(0x883C20);
+			send_nop();
+			send_cmd(0x803940);
+			send_nop();
+			send_cmd(0x887C40);
 			send_nop();
 			nvmcon = read_data();
+			send_nop();
+			send_nop();
+			send_nop();
 			reset_pc();
+			send_nop();
+			send_nop();
 			send_nop();
 		} while((nvmcon & 0x8000) == 0x8000);
 
 		if(counter != addr*100/filled_locations){
 			if(client && counter/10 != addr*10/filled_locations)
-				fprintf(stderr,"WRT@%2d\n", (addr*10/filled_locations)*10);
-			if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/filled_locations);
+				fprintf(stderr,"WRT@%2d\n", (addr*10/(filled_locations+0x100))*10);
+			if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 			counter = addr*100/filled_locations;
 		}
 	};
@@ -648,52 +806,6 @@ void dspic::write(char *infile)
 	cout << "DONE! " << endl;
 	if(client) cerr << "WRT@100" << endl;
 
-	/* WRITE CONFIGURATION REGISTERS */
-
-	cout << "Writing Configuration registers...";
-
-	send_cmd(0x200007);
-	send_cmd(0x24000A);
-	send_cmd(0x883B0A);
-	send_cmd(0x200F80);
-	send_cmd(0x880190);
-
-	addr = 0x00F80000;
-
-	for(i=0; i<12; i++){
-
-		if(mem.filled[addr+2*i]){
-
-			send_cmd(0x200007 | (0x000FFFF0 & ((addr+2*i) << 4)));
-
-			send_cmd(0x200000 | (mem.location[addr+2*i] << 4));
-			send_cmd(0xBB1B80);
-			send_nop();
-			send_nop();
-
-			send_cmd(0xA8E761);
-			send_nop();
-			send_nop();
-			send_nop();
-			send_nop();
-			do{
-				send_cmd(0x803B00);
-				send_cmd(0x883C20);
-				send_nop();
-				nvmcon = read_data();
-				reset_pc();
-				send_nop();
-			} while((nvmcon & 0x8000) == 0x8000);
-
-			if(debug)
-				fprintf(stdout,"\n - %s set to 0x%02x",
-						regname[i], mem.location[addr+2*i]);
-		}
-
-	}
-	if(debug) cout << endl;
-	cout << "DONE!" << endl;
-
 	/* VERIFY CODE MEMORY */
 	if(verify){
 		cout << "Verifying written memory locations...";
@@ -701,66 +813,94 @@ void dspic::write(char *infile)
 		if(client) cerr << "VRF@00" << endl;
 		counter = 0;
 
+		send_nop();
+		send_nop();
+		send_nop();
 		reset_pc();
-		reset_pc();
+		send_nop();
+		send_nop();
 		send_nop();
 
 		for(addr=0; addr < mem.code_memory_size; addr=addr+8) {
 
+			skip=1;
+
 			for(k=0; k<8; k+=2)
-				if(mem.filled[addr+k]) skip = 0;
-				else skip =1;
+				if(mem.filled[addr+k])
+					skip = 0;
 
-			if(((addr & 0x0000FFFF) == 0 || skipped) & !skip){
-				send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
-				send_cmd(0x880190);									// MOV W0, TBLPAG
-				send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
-			}
+			if(skip) continue;
 
-			if(skip){
-				skipped=1;
-				continue;
-			}
-			else skipped=0;
+			send_cmd(0x200000 | ((addr & 0x00FF0000) >> 12) );	// MOV #<DestAddress23:16>, W0
+			send_cmd(0x8802A0);									// MOV W0, TBLPAG
+			send_cmd(0x200006 | ((addr & 0x0000FFFF) << 4) );	// MOV #<DestAddress15:0>, W6
 
 			/* Fetch the next four memory locations and put them to W0:W5 */
-			send_cmd(0xEB0380);
+			send_cmd(0xEB0380);	// CLR W7
 			send_nop();
 			send_cmd(0xBA1B96);
+			send_nop();
+			send_nop();
+			send_nop();
 			send_nop();
 			send_nop();
 			send_cmd(0xBADBB6);
 			send_nop();
 			send_nop();
+			send_nop();
+			send_nop();
+			send_nop();
 			send_cmd(0xBADBD6);
+			send_nop();
+			send_nop();
+			send_nop();
 			send_nop();
 			send_nop();
 			send_cmd(0xBA1BB6);
 			send_nop();
 			send_nop();
+			send_nop();
+			send_nop();
+			send_nop();
 			send_cmd(0xBA1B96);
+			send_nop();
+			send_nop();
+			send_nop();
 			send_nop();
 			send_nop();
 			send_cmd(0xBADBB6);
 			send_nop();
 			send_nop();
+			send_nop();
+			send_nop();
+			send_nop();
 			send_cmd(0xBADBD6);
+			send_nop();
+			send_nop();
+			send_nop();
 			send_nop();
 			send_nop();
 			send_cmd(0xBA0BB6);
 			send_nop();
 			send_nop();
+			send_nop();
+			send_nop();
+			send_nop();
 
 			/* read six data words (16 bits each) */
 			for(i=0; i<6; i++){
-				send_cmd(0x883C20 + i);
-				send_nop();
+				send_cmd(0x887C40 + i);
 				send_nop();
 				raw_data[i] = read_data();
 				send_nop();
 			}
 
+			send_nop();
+			send_nop();
+			send_nop();
 			reset_pc();
+			send_nop();
+			send_nop();
 			send_nop();
 
 			/* store data correctly */
@@ -784,15 +924,15 @@ void dspic::write(char *infile)
 					if(client)
 						fprintf(stderr,"MSG@ERROR at address %06X: written %04X but %04X read!\n",
 										addr+i, mem.location[addr+i], data[i]);
-					return;
+					//return;
 				}
 
 			}
 
 			if(counter != addr*100/filled_locations){
 				if(client && counter/10 != addr*10/filled_locations)
-					fprintf(stderr,"VRF@%2d\n", (addr*10/filled_locations)*10);
-				if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/filled_locations);
+					fprintf(stderr,"VRF@%2d\n", (addr*10/(filled_locations+0x100))*10);
+				if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 				counter = addr*100/filled_locations;
 			}
 		}
@@ -806,38 +946,126 @@ void dspic::write(char *infile)
 		if(client) cerr << "VRF@SKP" << endl;
 	}
 
+	/* WRITE CONFIGURATION REGISTERS */
+
+	cout << "Writing Configuration registers...";
+
+	send_nop();
+	send_nop();
+	send_nop();
+	reset_pc();
+	send_nop();
+	send_nop();
+	send_nop();
+
+	send_cmd(0x200007);
+	send_cmd(0x200FAC);
+	send_cmd(0x8802AC);
+
+	addr = 0x00F80000;
+
+	for(i=2; i<10; i++){
+
+		if(mem.filled[addr+2*i]){
+
+			send_cmd(0x200000 | (mem.location[addr+2*i] << 4));
+
+			send_cmd(0xBB0B80);
+			send_nop();
+			send_nop();
+
+			send_cmd(0x200002 | (((addr+2*i) & 0x0000FFFF) <<  4));
+			send_cmd(0x200003 | (((addr+2*i) & 0x00FF0000) >> 12));
+			send_cmd(0x883963);
+			send_cmd(0x883952);
+
+			/* Set the NVMCON register to program one Configuration register */
+			send_cmd(0x24000A);
+			send_cmd(0x88394A);
+			send_nop();
+			send_nop();
+
+			/* Initiate the write cycle */
+			send_cmd(0x200551);
+			send_cmd(0x883971);
+			send_cmd(0x200AA1);
+			send_cmd(0x883971);
+			send_cmd(0xA8E729);
+			send_nop();
+			send_nop();
+			send_nop();
+
+			delay_us(DELAY_P20);
+
+			do{
+				send_nop();
+				send_cmd(0x803940);
+				send_nop();
+				send_cmd(0x887C40);
+				send_nop();
+				nvmcon = read_data();
+				send_nop();
+				send_nop();
+				send_nop();
+				reset_pc();
+				send_nop();
+				send_nop();
+				send_nop();
+			} while((nvmcon & 0x8000) == 0x8000);
+
+			if(debug)
+				fprintf(stdout,"\n - %s set to 0x%01x",
+						regname[i-2], mem.location[addr+2*i]);
+		}
+		else if(debug)
+				fprintf(stdout,"\n - %s left unchanged",
+						regname[i-2]);
+	}
+	if(debug) cout << endl;
+	cout << "DONE!" << endl;
+
 }
 
 /* write to screen the configuration registers, without saving them anywhere */
-void dspic::dump_configuration_registers(void)
+void dspic33e::dump_configuration_registers(void)
 {
-	const char *regname[] = {"FBS","FSS","FGS","FOSCSEL","FOSC","FWDT","FPOR",
-							"FICD","FUID0","FUID1","FUID2","FUID3"};
+	const char *regname[] = {"FGS","FOSCSEL","FOSC","FWDT","FPOR",
+							"FICD","FAS","FUID0"};
 
 	cout << endl << "Configuration registers:" << endl << endl;
 
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
-	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 
 	send_cmd(0x200F80);
-	send_cmd(0x880190);
-	send_cmd(0xEB0300);
-	send_cmd(0x207847);
+	send_cmd(0x8802A0);
+	send_cmd(0x200046);
+	send_cmd(0x20F887);
 	send_nop();
 
-	for(unsigned short i=0; i<12; i++){
+	for(unsigned short i=0; i<8; i++){
 		send_cmd(0xBA0BB6);
 		send_nop();
 		send_nop();
+		send_nop();
+		send_nop();
+		send_nop();
 		fprintf(stdout," - %s: 0x%02x\n", regname[i], read_data());
-		if(log && debug)
-			fprintf(stdout," - %s: 0x%02x\n", regname[i], read_data());
 	}
 
 	cout << endl;
 
+	send_nop();
+	send_nop();
+	send_nop();
 	reset_pc();
+	send_nop();
+	send_nop();
 	send_nop();
 }
 

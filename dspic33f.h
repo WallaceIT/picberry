@@ -24,7 +24,7 @@
 
 using namespace std;
 
-class dspic : public Pic{
+class dspic33f : public Pic{
 
 	public:
 
