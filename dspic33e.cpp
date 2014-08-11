@@ -42,15 +42,15 @@
 #define DELAY_P9B		15		// 15us - 23us max!
 #define DELAY_P10		1		// 400ns
 #define DELAY_P11		116000	// 116ms
-#define DELAY_P12		19500	// 19.5ms
-#define DELAY_P13		1280	// 1.28ms
+#define DELAY_P12		23000	// 23ms
+#define DELAY_P13		1600	// 1.6ms
 #define DELAY_P14		1		// 1us MAX!
 #define DELAY_P15		1		// 10ns
 #define DELAY_P16		0		// 0s
 #define DELAY_P17   	0		// 0s - 100ns MAX!
-#define DELAY_P18		1		// 1us
+#define DELAY_P18		1000	// 1ms
 #define DELAY_P19		1		// 25ns
-#define DELAY_P20		1		// 1us - 25ms MAX!
+#define DELAY_P20		25000	// 25ms
 #define DELAY_P21		1		// 1us - 500us MAX!
 
 #define ENTER_PROGRAM_KEY	0x4D434851
@@ -662,7 +662,7 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 /* Write contents of the .hex file to the PIC */
 void dspic33e::write(char *infile)
 {
-	uint8_t i,j,p;
+	uint16_t i,j,p;
 	uint16_t k;
 	bool skip;
 	uint32_t data[8],raw_data[6];
@@ -806,6 +806,90 @@ void dspic33e::write(char *infile)
 	cout << "DONE! " << endl;
 	if(client) cerr << "WRT@100" << endl;
 
+	delay_us(100000);
+
+	/* WRITE CONFIGURATION REGISTERS */
+
+	cout << "Writing Configuration registers...";
+
+	send_nop();
+	send_nop();
+	send_nop();
+	reset_pc();
+	send_nop();
+	send_nop();
+	send_nop();
+
+	send_cmd(0x200007);
+	send_cmd(0x200FAC);
+	send_cmd(0x8802AC);
+
+	addr = 0x00F80004;
+
+	for(i=0; i<8; i++){
+
+		if(mem.filled[addr]){
+
+			send_cmd(0x200000 | ((0x0000FFFF & mem.location[addr]) << 4));
+
+			send_cmd(0xBB0B80);
+			send_nop();
+			send_nop();
+
+			send_cmd(0x200002 | ((addr & 0x0000FFFF) <<  4));
+			send_cmd(0x200F83);
+			send_cmd(0x883963);
+			send_cmd(0x883952);
+
+			/* Set the NVMCON register to program one Configuration register */
+			send_cmd(0x24000A);
+			send_cmd(0x88394A);
+			send_nop();
+			send_nop();
+
+			/* Initiate the write cycle */
+			send_cmd(0x200551);
+			send_cmd(0x883971);
+			send_cmd(0x200AA1);
+			send_cmd(0x883971);
+			send_cmd(0xA8E729);
+			send_nop();
+			send_nop();
+			send_nop();
+
+			delay_us(DELAY_P20);
+
+			do{
+				send_nop();
+				send_cmd(0x803940);
+				send_nop();
+				send_cmd(0x887C40);
+				send_nop();
+				nvmcon = read_data();
+				send_nop();
+				send_nop();
+				send_nop();
+				reset_pc();
+				send_nop();
+				send_nop();
+				send_nop();
+			} while((nvmcon & 0x8000) == 0x8000);
+
+			if(debug)
+				fprintf(stdout,"\n - %s set to 0x%01x",
+						regname[i], mem.location[addr]);
+		}
+		else if(debug)
+				fprintf(stdout,"\n - %s left unchanged", regname[i]);
+
+		addr = addr+2;
+	}
+
+	if(debug) cout << endl;
+	cout << "DONE!" << endl;
+
+	delay_us(100000);
+
 	/* VERIFY CODE MEMORY */
 	if(verify){
 		cout << "Verifying written memory locations...";
@@ -945,84 +1029,6 @@ void dspic33e::write(char *infile)
 		cout << "Memory verification skipped." << endl;
 		if(client) cerr << "VRF@SKP" << endl;
 	}
-
-	/* WRITE CONFIGURATION REGISTERS */
-
-	cout << "Writing Configuration registers...";
-
-	send_nop();
-	send_nop();
-	send_nop();
-	reset_pc();
-	send_nop();
-	send_nop();
-	send_nop();
-
-	send_cmd(0x200007);
-	send_cmd(0x200FAC);
-	send_cmd(0x8802AC);
-
-	addr = 0x00F80000;
-
-	for(i=2; i<10; i++){
-
-		if(mem.filled[addr+2*i]){
-
-			send_cmd(0x200000 | (mem.location[addr+2*i] << 4));
-
-			send_cmd(0xBB0B80);
-			send_nop();
-			send_nop();
-
-			send_cmd(0x200002 | (((addr+2*i) & 0x0000FFFF) <<  4));
-			send_cmd(0x200003 | (((addr+2*i) & 0x00FF0000) >> 12));
-			send_cmd(0x883963);
-			send_cmd(0x883952);
-
-			/* Set the NVMCON register to program one Configuration register */
-			send_cmd(0x24000A);
-			send_cmd(0x88394A);
-			send_nop();
-			send_nop();
-
-			/* Initiate the write cycle */
-			send_cmd(0x200551);
-			send_cmd(0x883971);
-			send_cmd(0x200AA1);
-			send_cmd(0x883971);
-			send_cmd(0xA8E729);
-			send_nop();
-			send_nop();
-			send_nop();
-
-			delay_us(DELAY_P20);
-
-			do{
-				send_nop();
-				send_cmd(0x803940);
-				send_nop();
-				send_cmd(0x887C40);
-				send_nop();
-				nvmcon = read_data();
-				send_nop();
-				send_nop();
-				send_nop();
-				reset_pc();
-				send_nop();
-				send_nop();
-				send_nop();
-			} while((nvmcon & 0x8000) == 0x8000);
-
-			if(debug)
-				fprintf(stdout,"\n - %s set to 0x%01x",
-						regname[i-2], mem.location[addr+2*i]);
-		}
-		else if(debug)
-				fprintf(stdout,"\n - %s left unchanged",
-						regname[i-2]);
-	}
-	if(debug) cout << endl;
-	cout << "DONE!" << endl;
 
 }
 
