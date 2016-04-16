@@ -40,6 +40,7 @@
 #include "dspic33f.h"
 #include "dspic33e.h"
 #include "pic18fj.h"
+#include "pic24fj.h"
 
 int                 mem_fd;
 void                *gpio_map;
@@ -224,6 +225,8 @@ int main(int argc, char *argv[])
         //pic = new dspic33f(); default case, nothing to do
     else if(strcmp(family,"dspic33e") == 0)
         pic = new dspic33e();
+    else if(strcmp(family,"pic24fj") == 0)
+        pic = new pic24fj();
 	else if(strcmp(family,"18fj") == 0)
         pic = new pic18fj();
     else{
