@@ -24,13 +24,15 @@ raspberrypi: picberry
 	
 a10: picberry
 
-picberry:  inhx.o dspic33f.o dspic33e.o pic18fj.o picberry.o
-	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic33f.o dspic33e.o pic18fj.o
+am33xx: picberry
+
+picberry:  inhx.o dspic33f.o dspic33e.o pic18fj.o pic24fj.o picberry.o
+	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic33f.o dspic33e.o pic18fj.o pic24fj.o
 
 inhx.o:  inhx.cpp common.h
 	$(CC) $(CFLAGS) -c inhx.cpp
 
-picberry.o:  picberry.cpp common.h dspic33f.h dspic33e.h pic18fj.h
+picberry.o:  picberry.cpp common.h dspic33f.h dspic33e.h pic18fj.h pic24fj.h
 	$(CC) $(CFLAGS) -c picberry.cpp
 
 dspic33f.o:  dspic33f.cpp common.h dspic33f.h
@@ -41,6 +43,9 @@ dspic33e.o:  dspic33e.cpp common.h dspic33e.h
 
 pic18fj.o: pic18fj.cpp common.h pic18fj.h
 	$(CC) $(CFLAGS) -c pic18fj.cpp
+	
+pic24fj.o: pic24fj.cpp common.h pic24fj.h
+	$(CC) $(CFLAGS) -c pic24fj.cpp
 
 install:
 	install -m 0755 $(TARGET) $(BINDIR)/$(TARGET)

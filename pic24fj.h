@@ -46,7 +46,7 @@ class pic24fj : public Pic{
 		* DEVICES SECTION
 		*                       ID       NAME           	  MEMSIZE
 		*/
-		pic_device piclist[12] = {{0x6000, "PIC24FJ128GA606", 0x015FFF},
+		pic_device piclist[16] = {{0x6000, "PIC24FJ128GA606", 0x015FFF},
 								  {0x6008, "PIC24FJ256GA606", 0x02AFFF},
                                   {0x6010, "PIC24FJ512GA606", 0x055FFF},
                                   {0x6018, "PIC24FJ1024GA606", 0x0ABFFF},

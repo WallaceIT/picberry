@@ -175,8 +175,14 @@ int main(int argc, char *argv[])
 
     /* Configure GPIOs */
     if(pins != 0){       // if GPIO connections are specified in the options...
-        if(!strchr(&pins[0],':'))   // port not specified
+        if(!strchr(&pins[0],':')){   // port not specified
             sscanf(&pins[0], "%d,%d,%d", &pic_clk, &pic_data, &pic_mclr);
+            if(debug){
+                cout << "PGC connected to pin " << (pic_clk&0xFF) << endl;
+                cout << "PGD connected to pin " << (pic_data&0xFF) << endl;
+                cout << "MCLR connected to pin " << (pic_mclr&0xFF) << endl;
+            }
+        }
         else{                       // port specified
             char pic_clk_port, pic_data_port, pic_mclr_port;
             if(!sscanf(&pins[0],
@@ -190,13 +196,12 @@ int main(int argc, char *argv[])
             pic_clk |= ((pic_clk_port-'A')*PORTOFFSET)<<8;
             pic_data |= ((pic_data_port-'A')*PORTOFFSET)<<8;
             pic_mclr |= ((pic_mclr_port-'A')*PORTOFFSET)<<8;
+            if(debug){
+                cout << "PGC connected to pin " << pic_clk_port << (pic_clk&0xFF) << endl;
+                cout << "PGD connected to pin " << pic_data_port << (pic_data&0xFF) << endl;
+                cout << "MCLR connected to pin " << pic_mclr_port << (pic_mclr&0xFF) << endl;
+            }
         }
-    }
-
-    if(debug){
-       cout << "PGC connected to pin " << PORTNAME(pic_clk) << (pic_clk&0xFF) << endl;
-       cout << "PGD connected to pin " << PORTNAME(pic_data) << (pic_data&0xFF) << endl;
-       cout << "MCLR connected to pin " << PORTNAME(pic_mclr) << (pic_mclr&0xFF) << endl;
     }
 
     setup_io();
