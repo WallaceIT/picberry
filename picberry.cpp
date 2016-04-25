@@ -51,6 +51,7 @@ bool debug=0, verify=1, client=0, log=0;
 int pic_clk  = DEFAULT_PIC_CLK;
 int pic_data = DEFAULT_PIC_DATA;
 int pic_mclr = DEFAULT_PIC_MCLR;
+char pic_clk_port=0, pic_data_port=0, pic_mclr_port=0;
 
 /* Hardware delay function by Gordon's Projects - WiringPi */
 void delay_us (unsigned int howLong)
@@ -93,7 +94,8 @@ int main(int argc, char *argv[])
             {"log", 1, 0, 'l'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hDl:ng:c:s:f:r:w:ebdRx",long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hDl:ng:c:s:f:r:w:ebdRx",
+                              long_options, &option_index)) != -1) {
         switch (opt) {
         case 'h':
             usage();
@@ -175,43 +177,41 @@ int main(int argc, char *argv[])
 
     /* Configure GPIOs */
     if(pins != 0){       // if GPIO connections are specified in the options...
-        if(!strchr(&pins[0],':')){   // port not specified
+        if(!strchr(&pins[0],':'))   // port not specified
             sscanf(&pins[0], "%d,%d,%d", &pic_clk, &pic_data, &pic_mclr);
-            if(debug){
-                cout << "PGC connected to pin " << (pic_clk&0xFF) << endl;
-                cout << "PGD connected to pin " << (pic_data&0xFF) << endl;
-                cout << "MCLR connected to pin " << (pic_mclr&0xFF) << endl;
-            }
-        }
         else{                       // port specified
-            char pic_clk_port, pic_data_port, pic_mclr_port;
             if(!sscanf(&pins[0],
                     "%[A-Z]:%d,%[A-Z]:%d,%[A-Z]:%d",
                     &pic_clk_port, &pic_clk,
                     &pic_data_port, &pic_data,
                     &pic_mclr_port, &pic_mclr)){
-                        cout << "GPIO selection string not correctly formatted!" << endl;
+                        cout << "GPIO selection string not correctly formatted!"
+                             << endl;
                         exit(0);
                     }
             pic_clk |= ((pic_clk_port-'A')*PORTOFFSET)<<8;
             pic_data |= ((pic_data_port-'A')*PORTOFFSET)<<8;
             pic_mclr |= ((pic_mclr_port-'A')*PORTOFFSET)<<8;
-            if(debug){
-                cout << "PGC connected to pin " << pic_clk_port << (pic_clk&0xFF) << endl;
-                cout << "PGD connected to pin " << pic_data_port << (pic_data&0xFF) << endl;
-                cout << "MCLR connected to pin " << pic_mclr_port << (pic_mclr&0xFF) << endl;
-            }
         }
+    }
+    
+    if(debug){
+        cout << "PGC connected to pin " << pic_clk_port << (pic_clk&0xFF)
+             << endl;
+        cout << "PGD connected to pin " << pic_data_port << (pic_data&0xFF)
+             << endl;
+        cout << "MCLR connected to pin " << pic_mclr_port << (pic_mclr&0xFF)
+             << endl;
     }
 
     setup_io();
 
     GPIO_IN(pic_clk);   // NOTE: MUST use GPIO_IN before GPIO_OUT
     GPIO_OUT(pic_clk);
-
+    
     GPIO_IN(pic_data);
     GPIO_OUT(pic_data);
-
+    
     GPIO_IN(pic_mclr);      // MCLR as input, puts the output driver in Hi-Z
 
     GPIO_CLR(pic_clk);
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
         pic = new dspic33e();
     else if(strcmp(family,"pic24fj") == 0)
         pic = new pic24fj();
-	else if(strcmp(family,"18fj") == 0)
+	else if(strcmp(family,"pic18fj") == 0)
         pic = new pic18fj();
     else{
         cout << "ERROR: PIC family not correctly chosen." << endl;
@@ -364,7 +364,7 @@ void usage(void)
 "       -l [file]         redirect the output to log file(s)" << endl <<
 "       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)" << endl <<
-"       -f family         PIC family (dspic33e, dspic33f, 18fj) [default: dspic33f]" << endl <<
+"       -f family         PIC family [default: dspic33f]" << endl <<
 "       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<
 "       -w file.hex       bulk erase and write chip" << endl <<
 "       -n                skip memory verification after writing" << endl <<
@@ -372,5 +372,10 @@ void usage(void)
 "       -b                blank check of the chip" << endl <<
 "       -d                read configuration registers" << endl << endl <<
 "   Runtime Options" << endl << endl <<
-"       -R                reset" << endl << endl;
+"       -R                reset" << endl << endl << endl <<
+"   Available PIC families:" << endl << endl <<
+"       dspic33e    " << endl <<
+"       dspic33f    " << endl <<
+"       pic18fj     " << endl <<
+"       pic24fj     " << endl;
 }

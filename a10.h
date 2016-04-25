@@ -51,5 +51,3 @@
 #define DEFAULT_PIC_CLK    (int)((PB<<8)|15)   /* PGC - Output - PB15 */
 #define DEFAULT_PIC_DATA   (int)((PB<<8)|17)   /* PGD - I/O - PB17 */
 #define DEFAULT_PIC_MCLR   (int)((PI<<8)|15)   /* MCLR - Output - PB12 */
-
-#define PORTNAME(g)        (char)((int)(g>>8)/PORTOFFSET+'A')

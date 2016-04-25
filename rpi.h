@@ -23,6 +23,7 @@
 #define BCM2708_PERI_BASE  0x20000000
 #define GPIO_BASE          (BCM2708_PERI_BASE + 0x200000) /* GPIO controller */
 #define BLOCK_SIZE         (256)
+#define PORTOFFSET         0
 
 /* GPIO setup macros. Always use GPIO_IN(x) before using GPIO_OUT(x) */
 #define GPIO_IN(g)    *(gpio+((g&0xFF)/10))   &= ~(7<<(((g&0xFF)%10)*3))
@@ -36,6 +37,3 @@
 #define DEFAULT_PIC_CLK    23   /* PGC - Output */
 #define DEFAULT_PIC_DATA   24   /* PGD - I/O */
 #define DEFAULT_PIC_MCLR   18   /* MCLR - Output */
-
-#define PORTNAME(g)
-#define PORTOFFSET  0

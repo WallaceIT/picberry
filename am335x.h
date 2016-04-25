@@ -19,9 +19,6 @@
  */
  
  /* PORT OFFSETs */
-#ifndef __COMMON_H__
-#define __COMMON_H__
-
 #define GPIO0_BASE 0x44E07000
 #define GPIO1_BASE 0x4804C000
 #define GPIO2_BASE 0x481AC000
@@ -51,7 +48,3 @@
 #define DEFAULT_PIC_CLK    12   /* PGC - Output - gpio1_8 */
 #define DEFAULT_PIC_DATA   13   /* PGD - I/O - gpio1_9 */
 #define DEFAULT_PIC_MCLR   40   /* MCLR - Output - gpio0_13 */
-
-#define PORTNAME(g) (g/32)
-
-#endif
