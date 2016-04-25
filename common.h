@@ -27,11 +27,14 @@
  */
 //#define BOARD_RPI
 //#define BOARD_A10
+//#define BOARD_AM335X
 
 #if defined(BOARD_A10)
 #include "a10.h"
 #elif defined(BOARD_RPI)
 #include "rpi.h"
+#elif defined(BOARD_AM335X)
+#include "am335x.h"
 #endif
 
 using namespace std;

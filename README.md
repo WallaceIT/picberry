@@ -1,6 +1,6 @@
-Raspberry Pi/Allwinner A10 PIC Programmer using GPIO connector
+Raspberry Pi/Allwinner A10/TI AM335x PIC Programmer using GPIO connector
 
-Copyright 2014 Francesco Valla
+Copyright 2016 Francesco Valla
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -10,8 +10,8 @@ You should have received a copy of the GNU General Public License along with thi
 
 # Overview
 
-picberry is a Raspberry Pi/Allwinner A10 PIC programmer using GPIOs that doesn't require additional programming hardware.
-It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H and PIC18FxxJxx families, but only some PICs have been tested.
+picberry is a PIC programmer using GPIOs that doesn't require additional programming hardware, working on the [Raspberry Pi](https://www.raspberrypi.org/), Allwinner A10-based boards (such as the [Cubieboard](http://cubieboard.org/)) and TI AM335x-based boards (such as the [Beaglebone Black](https://beagleboard.org/black) or the [AM3359 ICEv2](http://www.ti.com/tool/tmdsice3359)).
+It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H, PIC24FJ and PIC18FxxJxx families, but only some PICs have been tested.
 
 # Building and Installing picberry
 
@@ -29,7 +29,11 @@ for Raspberry Pi target or
 
 	make a10
 
-for A10 target.
+for A10 target or
+
+	make am335x
+	
+for AM335x target.
 
 Then launch
 
@@ -42,7 +46,7 @@ To change destination prefix use PREFIX=, e.g.
 	sudo make install PREFIX=/usr/local
 
 
-Compilation is possible either directly on Raspberry Pi / A10 or in a cross-build environment.
+Compilation is possible either directly on target board or in a cross-build environment.
 
 # Usage of picberry
 
@@ -80,23 +84,29 @@ To connect the PIC to A10 GPIOs B15 (PGC), B17 (PGD), I15 (MCLR):
 To use picberry you will need only the "recommended minimum connections" outlined in each PIC datasheet (avoiding the cap on MCLR).
 
 Between PIC and the SoC you must have the four basic ICSP lines: PGC (clock), PGD (data), MCLR (Reset), GND.
-You can also connect PIC VDD line to Raspberry Pi/Allwinner A10 3v3 line, but be careful: Raspberry Pi/Allwinner A10 3v3 pins have only 50mA of current capability, so consider your circuit current drawn!
+You can also connect PIC VDD line to target board 3v3 line, but be careful: such pins normally have low current capabilities, so consider your circuit current drawn!
 
-If not specified in the command line, the default GPIOs <-> PIC connections for the Raspberry Pi are:
+If not specified in the command line, the default GPIOs <-> PIC connections are the following:
+
+for the Raspberry Pi:
 
 	PGC  <-> GPIO23
 	PGD  <-> GPIO24
 	MCLR <-> GPIO18
 
-and for the Allwinner A10
+for the Allwinner A10:
 
 	PGC  <-> PB15
 	PGD  <-> PB17
 	MCLR <-> PB12
+	
+for AM335x:
 
-PLEASE NOTE: picberry can use only pins on the same port on A10! Also, you can't set the port using a command line option (yet?).
+	PGC  <-> GPIO12
+	PGD  <-> GPIO13
+	MCLR <-> GPIO40
 
-Two setup photos can be find in the [Wiki] (../../wiki/Setup Images).
+Photos of the setup can be find in the [Wiki] (../../wiki/Setup Images).
 
 # Web client
 
@@ -109,6 +119,7 @@ Please report any issues you will find!
 
 - [dsPIC33E/PIC24E Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70619B.pdf)
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
+- [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
 
 # Licensing

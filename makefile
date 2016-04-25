@@ -16,24 +16,31 @@ endif
 
 a10: CFLAGS += -DBOARD_A10
 raspberrypi: CFLAGS += -DBOARD_RPI
+am335x: CFLAGS += -DBOARD_AM335X
 
 default:
 	 @echo "Please specify a target with 'make raspberrypi' or 'make a10'."
 
-raspberrypi: picberry
+raspberrypi: picberry gpio_test
 	
-a10: picberry
+a10: picberry gpio_test
 
-am33xx: picberry
+am335x: picberry gpio_test
 
 picberry:  inhx.o dspic33f.o dspic33e.o pic18fj.o pic24fj.o picberry.o
 	$(CC) $(CFLAGS) -o $(TARGET) inhx.o picberry.o dspic33f.o dspic33e.o pic18fj.o pic24fj.o
+	
+gpio_test:  gpio_test.o
+	$(CC) $(CFLAGS) -o gpio_test gpio_test.o
 
 inhx.o:  inhx.cpp common.h
 	$(CC) $(CFLAGS) -c inhx.cpp
 
 picberry.o:  picberry.cpp common.h dspic33f.h dspic33e.h pic18fj.h pic24fj.h
 	$(CC) $(CFLAGS) -c picberry.cpp
+	
+gpio_test.o:  gpio_test.cpp common.h
+	$(CC) $(CFLAGS) -c gpio_test.cpp
 
 dspic33f.o:  dspic33f.cpp common.h dspic33f.h
 	$(CC) $(CFLAGS) -c dspic33f.cpp
