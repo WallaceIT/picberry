@@ -32,6 +32,9 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <iostream>
 #include <fstream>
@@ -52,6 +55,15 @@ int pic_clk  = DEFAULT_PIC_CLK;
 int pic_data = DEFAULT_PIC_DATA;
 int pic_mclr = DEFAULT_PIC_MCLR;
 char pic_clk_port=0, pic_data_port=0, pic_mclr_port=0;
+
+#define FXN_NULL        0b00000000
+#define FXN_RESET       0b00000001
+#define FXN_SERVER      0b00000010
+#define FXN_READ        0b00000100
+#define FXN_WRITE       0b00001000
+#define FXN_ERASE       0b00010000
+#define FXN_BLANKCHEK   0b00100000
+#define FXN_REGDUMP     0b01000000
 
 /* Hardware delay function by Gordon's Projects - WiringPi */
 void delay_us (unsigned int howLong)
@@ -77,9 +89,12 @@ int main(int argc, char *argv[])
     char *family = 0;
     uint32_t count = 0, start = 0;
     int option_index = 0;
+    int server_port = 15000;
+    uint8_t retval = 0;
 
     static struct option long_options[] = {
             {"help", 0, 0, 'h'},
+            {"server", 1, 0, 'S'},
             {"debug", 0, 0, 'D'},
             {"noverify", 0, 0, 'n'},
             {"gpio", 1, 0, 'g'},
@@ -94,15 +109,16 @@ int main(int argc, char *argv[])
             {"log", 1, 0, 'l'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hDl:ng:c:s:f:r:w:ebdRx",
+    while ((opt = getopt_long(argc, argv, "hS:Dl:ng:c:s:f:r:w:ebdRx",
                               long_options, &option_index)) != -1) {
         switch (opt) {
         case 'h':
             usage();
             exit(0);
             break;
-        case 'x':
-            client = 1;
+        case 'S':
+            server_port = atoi(optarg);
+            function = FXN_SERVER;
             break;
         case 'D':
             debug = 1;
@@ -122,7 +138,7 @@ int main(int argc, char *argv[])
             break;
         case 'r':
             outfile = optarg;
-            function |= 0x01;
+            function |= FXN_READ;
             break;
         case 'c':
             count = atoi(optarg);
@@ -132,19 +148,19 @@ int main(int argc, char *argv[])
             break;
         case 'w':
             infile = optarg;
-            function |= 0x02;
+            function |= FXN_WRITE;
             break;
         case 'e':
-            function |= 0x04;
+            function |= FXN_ERASE;
             break;
         case 'b':
-            function |= 0x08;
+            function |= FXN_BLANKCHEK;
             break;
         case 'd':
-            function |= 0x10;
+            function |= FXN_REGDUMP;
             break;
         case 'R':
-            function = 0x80;
+            function = FXN_RESET;
             break;
         default:
             cout << endl;
@@ -153,7 +169,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (function == 0x02 && !infile) {
+    if (function & FXN_WRITE && !infile) {
         cout << "Please specify an input file!" << endl;
         exit(1);
     }
@@ -165,15 +181,11 @@ int main(int argc, char *argv[])
 
     /* If required, setup log file redirecting stdout */
     if(log){
-        if(!client) cout << "picberry PIC Programmer v" << VERSION <<
-                            " - Output to log file." << endl;
+        cout << "picberry PIC Programmer v" << VERSION << " - Output to log file." << endl;
         freopen(logfile?logfile:"picberry-log.txt","w",stdout);
     }
 
     cout << "picberry PIC Programmer v" << VERSION << endl;
-
-    /* Setup gpio pointer for direct register access */
-    if(debug) cout << "Setting up I/O..." << endl;
 
     /* Configure GPIOs */
     if(pins != 0){       // if GPIO connections are specified in the options...
@@ -196,16 +208,131 @@ int main(int argc, char *argv[])
     }
     
     if(debug){
-        cout << "PGC connected to pin " << pic_clk_port << (pic_clk&0xFF)
+        cout << "PGC <=> pin " << pic_clk_port << (pic_clk&0xFF)
              << endl;
-        cout << "PGD connected to pin " << pic_data_port << (pic_data&0xFF)
+        cout << "PGD <=> pin " << pic_data_port << (pic_data&0xFF)
              << endl;
-        cout << "MCLR connected to pin " << pic_mclr_port << (pic_mclr&0xFF)
+        cout << "MCLR <=> pin " << pic_mclr_port << (pic_mclr&0xFF)
              << endl;
     }
 
+    /* Setup gpio pointer for direct register access */
+    if(debug) cout << "Setting up I/O..." << endl;
     setup_io();
 
+    if(function == FXN_RESET)
+        pic_reset();
+    else if(function == FXN_SERVER){
+        client = 1;
+        server_mode(server_port);
+    }
+    else{
+
+        Pic *pic = new dspic33f();
+
+        if(family == 0 || strcmp(family, "dspic33f") == 0);
+            //pic = new dspic33f(); default case, nothing to do
+        else if(strcmp(family,"dspic33e") == 0)
+            pic = new dspic33e();
+        else if(strcmp(family,"pic24fj") == 0)
+            pic = new pic24fj();
+        else if(strcmp(family,"pic18fj") == 0)
+            pic = new pic18fj();
+        else{
+            cerr << "ERROR: PIC family not correctly chosen." << endl;
+            goto clean;
+        }
+
+        /* ENTER PROGRAM MODE */
+        pic -> enter_program_mode();
+
+        if(pic -> read_device_id()){  // Read devide ID and setup memory
+        
+            fprintf(stdout,"Device Name: %s\n", pic -> name);
+		    fprintf(stdout,"Device ID: 0x%x\n", pic ->device_id);
+            fprintf(stderr,"Revision: 0x%x\n", pic ->device_rev);
+
+            switch (function){
+                case FXN_NULL:          // no function selected, exit
+                    break;
+                case FXN_READ:
+                    cout << "Reading chip...";
+                    pic->read(outfile,start,count);
+                    cout << "DONE! " << endl;
+                    break;
+                case FXN_WRITE:
+                    cout << "Writing chip...";
+                    pic->write(infile);
+                    cout << "DONE! " << endl;
+                    break;
+                case FXN_ERASE:
+                	cout << "Bulk Erase...";
+                    pic->bulk_erase();
+                    cout << "DONE!" << endl;
+                    break;
+                case FXN_BLANKCHEK:
+                    cout << "Blank check...";
+                    retval = pic->blank_check();
+                    if(retval == 0)
+                        cout << "chip is blank." << endl;
+                    else
+                        cout << "chip is not blank." << endl;
+                    break;
+                case FXN_REGDUMP:
+                    pic->dump_configuration_registers();
+                    break;
+                default:
+                    cout << endl << endl << "Please select only one option" <<
+                    "between -d, -b, -r, -w, -e." << endl;
+                    break;
+            };
+        }
+        else
+            cout << "ERROR: unknown/unsupported device "
+                    "or programmer not connected." << endl;
+
+        pic->exit_program_mode();
+        
+        if(!log){
+            cout << "Press ENTER to exit program mode...";
+            fgetc(stdin);
+        }
+        
+        /* Free memory */
+        free(pic->mem.location);
+        free(pic->mem.filled);
+    }
+
+clean:
+    /* Release the MCLR pin and clean up I\O structures */
+    close_io();
+
+    fclose(stderr);
+    fclose(stdout);
+    return 0;
+}
+
+/* Set up a memory regions to access GPIO */
+void setup_io(void)
+{
+    /* open /dev/mem */
+    mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
+    if (mem_fd == -1) {
+        perror("Cannot open /dev/mem");
+        exit(1);
+    }
+
+    /* mmap GPIO */
+    gpio_map = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE,
+                    MAP_SHARED, mem_fd, GPIO_BASE);
+    if (gpio_map == MAP_FAILED) {
+        perror("mmap() failed");
+        exit(1);
+    }
+
+    /* Always use volatile pointer! */
+    gpio = (volatile uint32_t *) gpio_map;
+        
     GPIO_IN(pic_clk);   // NOTE: MUST use GPIO_IN before GPIO_OUT
     GPIO_OUT(pic_clk);
     
@@ -218,110 +345,15 @@ int main(int argc, char *argv[])
     GPIO_CLR(pic_data);
 
     delay_us(1);        // sleep for 1us after GPIO configuration
-
-    if(function == 0x80){
-        pic_reset();
-        exit(0);
-    }
-
-    Pic *pic = new dspic33f();
-
-    if(family == 0 || strcmp(family, "dspic33f") == 0);
-        //pic = new dspic33f(); default case, nothing to do
-    else if(strcmp(family,"dspic33e") == 0)
-        pic = new dspic33e();
-    else if(strcmp(family,"pic24fj") == 0)
-        pic = new pic24fj();
-	else if(strcmp(family,"pic18fj") == 0)
-        pic = new pic18fj();
-    else{
-        cout << "ERROR: PIC family not correctly chosen." << endl;
-        goto clean;
-    }
-
-    /* ENTER PROGRAM MODE */
-    pic -> enter_program_mode();
-
-    if(pic -> read_device_id()){  // Read devide ID and setup memory
-
-        switch (function){
-            case 0x00:          // no function selected, exit
-                break;
-            case 0x01:
-                pic->read(outfile,start,count);
-                break;
-            case 0x02:
-                pic->write(infile);
-                break;
-            case 0x04:
-                pic->bulk_erase();
-                break;
-            case 0x08:
-                pic->blank_check();
-                break;
-            case 0x10:
-                pic->dump_configuration_registers();
-                break;
-            default:
-                cout << endl << endl << "Please select only one option" <<
-                "between -d, -b, -r, -w, -e." << endl;
-                break;
-        };
-    }
-    else{
-        if(client) cerr << "MSG@";
-            cerr << "ERROR: unknown/unsupported device "
-                    "or programmer not connected." << endl;
-    }
-
-    pic->exit_program_mode();
-    if(client) cerr << "END";
-
-clean:
-
-    if(!client && !log){
-        cout << "Press ENTER to exit program mode...";
-        fgetc(stdin);
-    }
-
-    GPIO_IN(pic_mclr);      /* MCLR as input, puts the output driver in Hi-Z */
-
-    close_io();
-    free(pic->mem.location);
-    free(pic->mem.filled);
-
-    fclose(stderr);
-    fclose(stdout);
-    return 0;
-}
-
-/* Set up a memory regions to access GPIO */
-void setup_io(void)
-{
-        /* open /dev/mem */
-        mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
-        if (mem_fd == -1) {
-                perror("Cannot open /dev/mem");
-                exit(1);
-        }
-
-        /* mmap GPIO */
-        gpio_map = mmap(0, BLOCK_SIZE, PROT_READ|PROT_WRITE,
-                        MAP_SHARED, mem_fd, GPIO_BASE);
-        if (gpio_map == MAP_FAILED) {
-                perror("mmap() failed");
-                exit(1);
-        }
-
-        /* Always use volatile pointer! */
-        gpio = (volatile uint32_t *) gpio_map;
-
 }
 
 /* Release GPIO memory region */
 void close_io(void)
 {
         int ret;
+        
+        /* MCLR as input, puts the output driver in Hi-Z */
+        GPIO_IN(pic_mclr);
 
         /* munmap GPIO */
         ret = munmap(gpio_map, BLOCK_SIZE);
@@ -378,4 +410,169 @@ void usage(void)
 "       dspic33f    " << endl <<
 "       pic18fj     " << endl <<
 "       pic24fj     " << endl;
+}
+
+#define BUFFSIZE 32
+
+enum srv_command : char{
+    SRV_PB_VER      = '0',
+    SRV_RESET       = '1',
+    SRV_ENTER       = '2',
+    SRV_EXIT        = '3',
+    SRV_DEV_ID      = '4',
+    SRV_ERASE       = '5',
+    SRV_READ        = '6',
+    SRV_WRITE       = '7',
+    SRV_BLANKCHECK  = '8',
+    SRV_REGDUMP     = '9',
+    SRV_SET_FAMILY  = 'A'
+};
+
+enum srv_families : char{
+    SRV_FAM_DSPIC33E = '0',
+    SRV_FAM_DSPIC33F,
+    SRV_FAM_PIC18FJ,
+    SRV_FAM_PIC24FJ
+};
+
+void server_mode(int port){
+    int serversock, clientsock;
+    struct sockaddr_in pbserver, pbclient;
+    char buffer[BUFFSIZE];
+    int received = -1;
+    bool program_mode = 0;
+    
+    /* Set picberry to work in "client" mode */
+    client = 1;
+
+    /* Create the TCP socket */
+    if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+        cerr << "Failed to create socket";
+        exit(1);
+    }
+    /* Construct the server sockaddr_in structure */
+    memset(&pbserver, 0, sizeof(pbserver));       /* Clear struct */
+    pbserver.sin_family = AF_INET;                  /* Internet/IP */
+    pbserver.sin_addr.s_addr = htonl(INADDR_ANY);   /* Incoming addr */
+    pbserver.sin_port = htons(port);       /* server port */
+    
+     /* Bind the server socket */      
+    if (bind(serversock, (struct sockaddr *) &pbserver, sizeof(pbserver)) < 0) {
+       cerr << "Failed to bind the server socket";
+       exit(1);
+    }
+    /* Listen on the server socket (single connection) */
+    if (listen(serversock, 1) < 0) {
+        cerr << "Failed to listen on server socket";
+        exit(1);
+    }
+    
+    /* Setup picberry operation */
+    Pic *pic = new dspic33e();
+    
+    /* Run until cancelled */
+    while (1) {
+        unsigned int clientlen = sizeof(pbclient);
+        /* Wait for client connection */
+        if ((clientsock = accept(serversock, (struct sockaddr *) &pbclient,
+                                 &clientlen)) < 0) {
+            cerr << "Failed to accept client connection";
+            exit(1);
+        }
+        /* redirect stdout to socket */
+        setbuf(stdout, NULL);
+        dup2(clientsock, STDOUT_FILENO);
+        cerr << "Client connected: " << inet_ntoa(pbclient.sin_addr) << endl;
+        /* Receive message */
+        if ((received = recv(clientsock, buffer, BUFFSIZE, 0)) < 0)
+            cerr << "Failed to receive initial bytes from client";
+        /* Send bytes and check for more incoming data in loop */
+        while (received > 0) {
+            if(debug){
+                buffer[received] = '\0';
+                cerr << "Command received: " << buffer;   
+            }
+                
+            switch(buffer[0]){
+                case SRV_PB_VER:
+                    cerr << "[CMD] Get picberry version" << endl;
+                    send(clientsock, VERSION, strlen(VERSION), 0);
+                    break;
+                case SRV_RESET:
+                    cerr << "[CMD] Reset" << endl;
+                    pic_reset();
+                    break;
+                case SRV_ENTER:
+                    cerr << "[CMD] Enter Program Mode" << endl;
+                    pic -> enter_program_mode();
+                    program_mode = 1;
+                    break;
+                case SRV_EXIT:
+                    if(program_mode){
+                        cerr << "[CMD] Exit Program Mode" << endl;
+                        pic -> exit_program_mode();
+                        program_mode = 0;   
+                    }
+                    break;
+                case SRV_SET_FAMILY:
+                    cerr << "[CMD] Set Family" << endl;
+
+                    free(pic);
+                        
+                    if(buffer[1] == SRV_FAM_DSPIC33E)
+                        pic = new dspic33e();
+                    else if(buffer[1] == SRV_FAM_DSPIC33F)
+                        pic = new dspic33f();
+                    else if(buffer[1] == SRV_FAM_PIC18FJ)
+                        pic = new pic18fj();
+                    else if(buffer[1] == SRV_FAM_PIC24FJ)
+                        pic = new pic24fj();
+                        
+                    fprintf(stdout, "K%c", buffer[1]);
+                    break;
+                case SRV_DEV_ID:
+                    if(program_mode){
+                        if(debug) cerr << "[CMD] Read Device ID" << endl;
+                        pic -> read_device_id();
+                        fprintf(stdout,
+                                "{\"DevName\" : \"%s\", \"DevID\" : \"0x%04X\", \"DevRev\" : \"0x%04X\"}",
+                                pic->name,
+                                pic->device_id,
+                                pic->device_rev);
+                    }
+                    break;
+                case SRV_BLANKCHECK:
+                    if(program_mode){
+                        cerr << "[CMD] Blank Check" << endl;
+                        pic->blank_check();
+                    }
+                    break;
+                case SRV_READ:
+                    if(program_mode){
+                        cerr << "[CMD] Read" << endl;
+                        pic->read((char *)"tmp.hex", 0, 0);
+                    }
+                    break;
+                case SRV_WRITE:
+                    if(program_mode){
+                        cerr << "[CMD] Write" << endl;
+                        pic->write((char *)"tmp.hex");
+                    }
+                    break;
+                case SRV_ERASE:
+                    if(program_mode){
+                        cerr << "[CMD] Erase" << endl;
+                        pic->bulk_erase();
+                    }
+                    break;
+                default:
+                    break;
+            }
+            
+            /* Check for more data */
+            if ((received = recv(clientsock, buffer, BUFFSIZE, 0)) < 0)
+                cerr << "Failed to receive additional bytes from client";
+        }
+        close(clientsock);
+    }
 }

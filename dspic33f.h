@@ -35,7 +35,7 @@ class dspic33f : public Pic{
 		void dump_configuration_registers(void);
 		void read(char *outfile, uint32_t start, uint32_t count);
 		void write(char *infile);
-		void blank_check(void);
+		uint8_t blank_check(void);
 
 	protected:
 		void send_cmd(uint32_t cmd);

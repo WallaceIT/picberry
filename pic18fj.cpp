@@ -211,9 +211,6 @@ bool pic18fj::read_device_id(void)
 
 	device_id = id;
 
-	if(debug)
-		fprintf(stdout,"Device ID: 0x%x\n", device_id );
-
 	for (unsigned short i=0;i < sizeof(piclist)/sizeof(piclist[0]);i++){
 
 		if (piclist[i].device_id == device_id){
@@ -223,8 +220,6 @@ bool pic18fj::read_device_id(void)
 			mem.program_memory_size = 0x0F80018;
 			mem.location = (uint16_t*) calloc(mem.program_memory_size,sizeof(uint16_t));
 			mem.filled = (bool*) calloc(mem.program_memory_size,sizeof(bool));
-			cout << name << " detected!" << endl;
-			if(client) cerr << "PRT@" << name << endl;
 			found = 1;
 			break;
 		}
@@ -233,11 +228,46 @@ bool pic18fj::read_device_id(void)
 	return found;
 }
 
+/* Blank Check */
+uint8_t pic18fj::blank_check(void)
+{
+	uint16_t addr, data;
+	uint8_t ret = 0;
+
+	if(!debug) cerr << "[ 0%]";
+	lcounter = 0;
+
+	goto_mem_location(0x000000);
+
+	for(addr = 0; addr < (mem.code_memory_size - 4); addr++){
+
+		send_cmd(COMM_TABLE_READ_POST_INC);
+		data = read_data();
+		send_cmd(COMM_TABLE_READ_POST_INC);
+		data = (read_data() << 8) | (data & 0xFF) ;
+
+		if(data != 0xFFFF) {
+			fprintf(stderr, "Chip not Blank! Address: 0x%d, Read: 0x%x.\n",  addr*2, data);
+			ret = 1;
+			break;
+		}
+
+		if(lcounter != addr*100/mem.code_memory_size){
+			lcounter = addr*100/mem.code_memory_size;
+			fprintf(stderr, "\b\b\b\b\b[%2d%%]", lcounter);
+		}
+	}
+
+	if(!debug) cerr << "\b\b\b\b\b";
+
+	return ret;
+
+}
+
 /* Bulk erase the chip */
 void pic18fj::bulk_erase(void)
 {
 
-	cout << "Performing a Bulk Erase...";
 	goto_mem_location(0x3C0004);
 	send_cmd(COMM_TABLE_WRITE);
 	write_data(0x0180);
@@ -248,7 +278,7 @@ void pic18fj::bulk_erase(void)
 	GPIO_CLR(pic_data);	                /* Hold PGD low until erase completes. */
 	delay_us(DELAY_P11);
 	delay_us(DELAY_P10);
-	cout << "DONE!" << endl;
+	if(client) fprintf(stdout, "@FIN");
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -256,9 +286,8 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 {
 	uint16_t addr, data = 0x0000;
 
-	cout << "Reading chip..." << endl;
-	if(!log && !debug) cout << "[ 0%]";
-	if(client) cerr << "RED@00" << endl;
+	if(!debug) cerr << "[ 0%]";
+	if(client) fprintf(stdout, "@000");
 	lcounter = 0;
 
 	/* Read Memory */
@@ -273,7 +302,7 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 		data = ( read_data() << 8 ) | (data & 0x00FF);
 
 		if (debug)
-			fprintf(stdout, "  addr = 0x%04X  data = 0x%04X\n", addr*2, data);
+			fprintf(stderr, "  addr = 0x%04X  data = 0x%04X\n", addr*2, data);
 
 		if (data != 0xFFFF) {
 			mem.location[addr]        = data;
@@ -281,14 +310,16 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 		}
 
 		if(lcounter != addr*100/mem.code_memory_size){
-			if(client && lcounter/10 != addr*10/mem.code_memory_size)
-				fprintf(stderr,"RED@%2d\n", (addr*10/mem.code_memory_size)*10);
-			if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
+			if(client)
+				fprintf(stderr,"RED@%2d\n", (addr*100/mem.code_memory_size));
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
 			lcounter = addr*100/mem.code_memory_size;
 		}
 	}
 
-	if(client) cerr << "RED@100" << endl;
+	if(!debug) cerr << "\b\b\b\b\b";
+	if(client) fprintf(stdout, "@FIN");
 	write_inhx(&mem, outfile);
 }
 
@@ -304,9 +335,8 @@ void pic18fj::write(char *infile)
 
 	bulk_erase();
 
-	cout << "Writing chip...";
-	if(!log && !debug) cout << "[ 0%]";
-	if(client) cerr << "WRT@00" << endl;
+	if(!debug) cerr << "[ 0%]";
+	if(client) fprintf(stdout, "@000");
 	lcounter = 0;
 
 	send_cmd(COMM_CORE_INSTRUCTION);
@@ -316,18 +346,18 @@ void pic18fj::write(char *infile)
 
 		goto_mem_location(2*addr);
 		if (debug)
-			fprintf(stdout, "Go to address 0x%08X \n", addr);
+			fprintf(stderr, "Go to address 0x%08X \n", addr);
 
 		for(i=0; i<31; i++){		                        /* write the first 62 bytes */
 			if (mem.filled[addr+i]) {
 				if (debug)
-					fprintf(stdout, "  Writing 0x%04X to address 0x%06X \n", mem.location[addr + i], (addr+i)*2 );
+					fprintf(stderr, "  Writing 0x%04X to address 0x%06X \n", mem.location[addr + i], (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(mem.location[addr+i]);
 			}
 			else {
 				if (debug)
-					fprintf(stdout, "  Writing 0xFFFF to address 0x%06X \n", (addr+i)*2 );
+					fprintf(stderr, "  Writing 0xFFFF to address 0x%06X \n", (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(0xFFFF);			/* write 0xFFFF in empty locations */
 			};
@@ -336,13 +366,13 @@ void pic18fj::write(char *infile)
 		/* write the last 2 bytes and start programming */
 		if (mem.filled[addr+31]) {
 			if (debug)
-				fprintf(stdout, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
+				fprintf(stderr, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(mem.location[addr+31]);
 		}
 		else {
 			if (debug)
-				fprintf(stdout, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
+				fprintf(stderr, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(0xFFFF);			         /* write 0xFFFF in empty locations */
 		};
@@ -362,22 +392,22 @@ void pic18fj::write(char *infile)
 		write_data(0x0000);
 		/* end of Programming Sequence */
 		if(lcounter != addr*100/filled_locations){
-			if(client && lcounter/10 != addr*10/filled_locations)
-				fprintf(stderr,"WRT@%2d\n", (addr*10/filled_locations)*10);
-			if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/filled_locations);
 			lcounter = addr*100/filled_locations;
+			if(client)
+				fprintf(stdout,"@%03d", lcounter);
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b\b[%2d%%]", lcounter);
 		}
 	};
 
-	if(!log) cout << "\b\b\b\b\b\b";
-	cout << "DONE!" << endl;
-	if(client) cerr << "WRT@100" << endl;
+	if(!debug) cerr << "\b\b\b\b\b\b";
+	if(client) fprintf(stdout, "@100");
 
 	/* Verify Code Memory and Configuration Word */
 	if(verify){
-		cout << "Verifying written data...";
-		if(!log && !debug) cout << "[ 0%]";
-		if(client) cerr << "VRF@00" << endl;
+		cerr << endl << "Verifying written memory locations..." << endl;
+		if(!debug) cerr << "[ 0%]";
+		if(client) fprintf(stdout, "@000");
 		lcounter = 0;
 
 		goto_mem_location(0x000000);
@@ -390,74 +420,30 @@ void pic18fj::write(char *infile)
 			data = ( read_data() << 8 ) | ( data & 0xFF );
 
 			if (debug)
-				fprintf(stdout, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n",
+				fprintf(stderr, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n",
 						addr*2, data, (mem.filled[addr]) ? (mem.location[addr]) : 0xFFFF);
 
 			if ( (data != mem.location[addr]) & ( mem.filled[addr]) ) {
-				fprintf(stdout, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
+				fprintf(stderr, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
 						addr*2, data, mem.location[addr]);
-				if(log && debug)
-					fprintf(stdout, "Error at addr = 0x%06X:  pic = 0x%04X, file = 0x%04X.\nExiting...",
-							addr*2, data, mem.location[addr]);
 				break;
 			}
 			if(lcounter != addr*100/filled_locations){
-				if(client && lcounter/10 != addr*10/filled_locations)
-					fprintf(stderr,"VRF@%2d\n", (addr*10/filled_locations)*10);
-				if(!log) fprintf(stdout,"\b\b\b\b%2d%%]", addr*100/filled_locations);
 				lcounter = addr*100/filled_locations;
+				if(client)
+					fprintf(stdout,"@%03d", lcounter);
+				if(!debug)
+					fprintf(stderr,"\b\b\b\b\b[%2d%%]", lcounter);
 			}
 		}
 
-		if(!log) cout << "\b\b\b\b\b";
-		cout << "DONE!" << endl;
-		if(client) cerr << "VRF@100" << endl;
+		if(!debug) cerr << "\b\b\b\b\b";
+		if(client) fprintf(stdout, "@FIN");
 	}
 	else{
-		cout << "Memory verification skipped." << endl;
-		if(client) cerr << "MSG@Memory verification skipped." << endl;
+		cerr << "Memory verification skipped." << endl;
+		if(client) fprintf(stdout, "@FIN");
 	}
-
-}
-
-/* Blank Check */
-void pic18fj::blank_check(void)
-{
-	uint16_t addr, data;
-	uint8_t blank = 1;
-
-	cout << "Performing Blank Check...";
-	if(!log) cout << "[ 0%]";
-	lcounter = 0;
-
-	goto_mem_location(0x000000);
-
-	for (addr = 0; addr < (mem.code_memory_size - 4); addr++) {
-
-		send_cmd(COMM_TABLE_READ_POST_INC);
-		data = read_data();
-		send_cmd(COMM_TABLE_READ_POST_INC);
-		data = (read_data() << 8) | (data & 0xFF) ;
-
-		if (data != 0xFFFF) {
-			if(!log) cout << "\b\b\b\b\b";
-			fprintf(stdout, "Chip not Blank! Address: 0x%d, Read: 0x%x.\n",  addr*2, data);
-			blank = 0;
-			break;
-		}
-
-		if(!log && lcounter != addr*100/mem.code_memory_size){
-			fprintf(stdout, "\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
-			lcounter = addr*100/mem.code_memory_size;
-		}
-	}
-
-	if(blank){
-		if(!log) cout << "\b\b\b\b\b";
-		cout << "Blank Chip!" << endl;
-	}
-
-	cout << "DONE!" << endl;
 
 }
 

@@ -31,7 +31,7 @@
 
 using namespace std;
 
-#define VERSION 0.1
+#define VERSION "0.1"
 
 struct memory{
 		uint32_t	program_memory_size;   	// size in WORDS (16bits each)
@@ -50,11 +50,15 @@ class Pic{
 
 	public:
 		uint16_t 		device_id;
+		uint16_t 		device_rev;
 		char			name[25];
-		memory mem;
+		memory 			mem;
 
-		Pic(){device_id=0;};	// Constructor
-		virtual ~Pic(){};		// Destructor
+		Pic(){
+			device_id=0;
+			device_rev=0;
+			};
+		virtual ~Pic(){};
 
 		virtual void enter_program_mode(void) = 0;
 		virtual void exit_program_mode(void) = 0;
@@ -63,7 +67,7 @@ class Pic{
 		virtual void dump_configuration_registers(void) = 0;
 		virtual void read(char *outfile, uint32_t start, uint32_t count) = 0;
 		virtual void write(char *infile) = 0;
-		virtual void blank_check(void) = 0;
+		virtual uint8_t blank_check(void) = 0;
 };
 
 /* Low-level functions */
@@ -80,6 +84,7 @@ void pic_reset(void);
 
 /* main functions */
 void usage(void);
+void server_mode(int port);
 
 extern volatile uint32_t *gpio;
 extern int pic_clk, pic_data, pic_mclr;

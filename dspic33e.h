@@ -27,7 +27,6 @@ using namespace std;
 class dspic33e : public Pic{
 
 	public:
-
 		void enter_program_mode(void);
 		void exit_program_mode(void);
 		bool read_device_id(void);
@@ -35,7 +34,7 @@ class dspic33e : public Pic{
 		void dump_configuration_registers(void);
 		void read(char *outfile, uint32_t start, uint32_t count);
 		void write(char *infile);
-		void blank_check(void);
+		uint8_t blank_check(void);
 
 	protected:
 		void send_cmd(uint32_t cmd);

@@ -239,19 +239,14 @@ bool dspic33e::read_device_id(void)
 	send_nop();
 	send_nop();
 	device_id = read_data();
-	if(debug)
-		fprintf(stdout,"Device ID: 0x%x\n", device_id );
 
-	if(debug){
-		send_cmd(0xBA0BB6);
-		send_nop();
-		send_nop();
-		send_nop();
-		send_nop();
-		send_nop();
-
-		fprintf(stdout,"Revision: 0x%x\n", read_data());
-	}
+	send_cmd(0xBA0BB6);
+	send_nop();
+	send_nop();
+	send_nop();
+	send_nop();
+	send_nop();
+	device_rev = read_data();
 	
 	reset_pc();
 	send_nop();
@@ -260,13 +255,11 @@ bool dspic33e::read_device_id(void)
 
 		if (piclist[i].device_id == device_id){
 
-			strcpy(name,piclist[i].name);
+			strcpy(name, piclist[i].name);
 			mem.code_memory_size = piclist[i].code_memory_size;
 			mem.program_memory_size = 0x0F80018;
 			mem.location = (uint16_t*) calloc(mem.program_memory_size,sizeof(uint16_t));
 			mem.filled = (bool*) calloc(mem.program_memory_size,sizeof(bool));
-			cout << name << " detected!" << endl << endl;
-			if(client) cerr << "PRT@" << name << endl;
 			found = 1;
 			break;
 		}
@@ -277,18 +270,14 @@ bool dspic33e::read_device_id(void)
 }
 
 /* Check if the device is blank */
-void dspic33e::blank_check(void)
+uint8_t dspic33e::blank_check(void)
 {
 	uint32_t addr;
 	unsigned short i;
 	uint16_t data[8], raw_data[6];
+	uint8_t ret = 0;
 
-	cout << endl << "Blank check...";
-	if(!log && !debug) cout << "[ 0%]";
-
-	if(client){
-		cerr << "Blank check...";
-	}
+	if(!debug) cerr << "[ 0%]";
 
 	counter=0;
 
@@ -388,20 +377,18 @@ void dspic33e::blank_check(void)
 		data[7] = (raw_data[4] & 0xFF00) >> 8;
 		data[6] = raw_data[5];
 
-		if(!log && counter != addr*100/mem.code_memory_size){
-			fprintf(stdout, "\b\b\b\b\b[%2d%%]", addr*100/mem.code_memory_size);
+		if(counter != addr*100/mem.code_memory_size){
 			counter = addr*100/mem.code_memory_size;
+			fprintf(stderr, "\b\b\b\b\b[%2d%%]", counter);	
 		}
 
 		for(i=0; i<8; i++){
-
 			if(debug)			
-				fprintf(stdout, "\n addr = 0x%06X data = 0x%04X",
+				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
 								(addr+i), data[i]);
-
 			if ((i%2 == 0 && data[i] != 0xFFFF) || (i%2 == 1 && data[i] != 0x00FF)) {
-				if(!log && !debug) cout << "\b\b\b\b\b";
-				cout << "chip is not blank!" << endl;
+				if(!debug) cerr << "\b\b\b\b\b";
+				ret = 1;
 				addr = mem.code_memory_size + 10;
 				break;
 			}
@@ -409,8 +396,8 @@ void dspic33e::blank_check(void)
 	}
 
 	if(addr <= (mem.code_memory_size + 8)){
-		if(!log && !debug) cout << "\b\b\b\b\b";
-		cout << "chip is blank!" << endl;
+		if(!debug) cerr << "\b\b\b\b\b";
+		ret = 0;
 	};
 
 	send_nop();
@@ -420,6 +407,8 @@ void dspic33e::blank_check(void)
 	send_nop();
 	send_nop();
 	send_nop();
+	
+	return ret;
 }
 
 /* Bulk erase the chip */
@@ -433,8 +422,6 @@ void dspic33e::bulk_erase(void)
     send_nop();
     send_nop();
     send_nop();
-
-	cout << "Performing a Bulk Erase...";
 
 	send_cmd(0x2400EA);
 	send_cmd(0x88394A);
@@ -467,8 +454,8 @@ void dspic33e::bulk_erase(void)
 		send_nop();
 		send_nop();
 	} while((nvmcon & 0x8000) == 0x8000);
-
-	cout << "DONE!" << endl;
+	
+	if(client) fprintf(stdout, "@FIN");
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -482,13 +469,12 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 	stopaddr = mem.code_memory_size;
 	if(count != 0 && count < stopaddr){
 		stopaddr = startaddr + count;
-		fprintf(stdout, "Read only %d memory locations, from %06X to %06X\n",
+		fprintf(stderr, "Read only %d memory locations, from %06X to %06X\n",
 				count, startaddr, stopaddr);
 	}
 
-	cout << endl <<"Reading chip...";
-	if(!log && !debug) cout << "[ 0%]";
-	if(client) cerr << "RED@00" << endl;
+	if(!debug) cerr << "[ 0%]";
+	if(client) fprintf(stdout, "@000");
 	counter=0;
 
 	/* exit reset vector */
@@ -590,7 +576,7 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 
 		for(i=0; i<8; i++){
 			if (debug)
-				fprintf(stdout, "\n addr = 0x%06X data = 0x%04X",
+				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
 						(addr+i), data[i]);
 
 			if (i%2 == 0 && data[i] != 0xFFFF) {
@@ -605,11 +591,11 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 		}
 
 		if(counter != addr*100/stopaddr){
-			if(client && counter/10 != addr*10/stopaddr)
-				fprintf(stderr,"RED@%2d\n", (addr*10/stopaddr)*10);
-			if(!log)fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/stopaddr);
-
 			counter = addr*100/stopaddr;
+			if(client)
+				fprintf(stdout,"@%03d", counter);
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 		}
 
 		/* TODO: checksum */
@@ -640,8 +626,8 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 		send_nop();
 		data[0] = read_data();
 		if (data[0] != 0xFFFF) {
-			mem.location[addr+2*i]        = data[0];
-			mem.filled[addr+2*i]      = 1;
+			mem.location[addr+2*i] = data[0];
+			mem.filled[addr+2*i] = 1;
 		}
 	}
 
@@ -653,9 +639,8 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 	send_nop();
 	send_nop();
 
-	if(!log && !debug) cout << "\b\b\b\b\b";
-	cout << "DONE! " << endl;
-	if(client) cerr << "RED@100" << endl;
+	if(!debug) cerr << "\b\b\b\b\b";
+	if(client) fprintf(stdout, "@FIN");
 	write_inhx(&mem, outfile);
 }
 
@@ -688,9 +673,8 @@ void dspic33e::write(char *infile)
 	send_nop();
 
 	/* WRITE CODE MEMORY */
-	cout << "Writing chip...";
-	if(!log && !debug) cout << "[ 0%]";
-	if(client) cerr << "WRT@00" << endl;
+	if(!debug) cerr << "[ 0%]";
+	if(client) fprintf(stdout, "@000");
 	counter=0;
 
 	for (addr = 0; addr < mem.code_memory_size; ){
@@ -721,7 +705,7 @@ void dspic33e::write(char *infile)
 				if (mem.filled[addr+j]) data[j] = mem.location[addr+j];
 				else data[j] = 0xFFFF;
 				if(debug)
-					fprintf(stdout,"\n  Writing 0x%04X to address 0x%06X ", data[j], addr+j );
+					fprintf(stderr,"\n  Writing 0x%04X to address 0x%06X ", data[j], addr+j );
 			}
 
 			send_cmd(0x200000 | (data[0] << 4));										// MOV #<LSW0>, W0
@@ -795,22 +779,22 @@ void dspic33e::write(char *infile)
 		} while((nvmcon & 0x8000) == 0x8000);
 
 		if(counter != addr*100/filled_locations){
-			if(client && counter/10 != addr*10/filled_locations)
-				fprintf(stderr,"WRT@%2d\n", (addr*10/(filled_locations+0x100))*10);
-			if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
+			if(client)
+				fprintf(stdout,"@%03d", (addr*100/(filled_locations+0x100)));
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 			counter = addr*100/filled_locations;
 		}
 	};
 
-	if(!log && !debug) cout << "\b\b\b\b\b\b";
-	cout << "DONE! " << endl;
-	if(client) cerr << "WRT@100" << endl;
+	if(!debug) cerr << "\b\b\b\b\b\b";
+	if(client) fprintf(stdout, "@100");
 
 	delay_us(100000);
 
 	/* WRITE CONFIGURATION REGISTERS */
-
-	cout << "Writing Configuration registers...";
+	if(debug)
+		cerr << endl << "Writing Configuration registers..." << endl;
 
 	send_nop();
 	send_nop();
@@ -876,25 +860,24 @@ void dspic33e::write(char *infile)
 			} while((nvmcon & 0x8000) == 0x8000);
 
 			if(debug)
-				fprintf(stdout,"\n - %s set to 0x%01x",
+				fprintf(stderr,"\n - %s set to 0x%01x",
 						regname[i], mem.location[addr]);
 		}
 		else if(debug)
-				fprintf(stdout,"\n - %s left unchanged", regname[i]);
+				fprintf(stderr,"\n - %s left unchanged", regname[i]);
 
 		addr = addr+2;
 	}
 
-	if(debug) cout << endl;
-	cout << "DONE!" << endl;
+	if(debug) cerr << endl;
 
 	delay_us(100000);
 
 	/* VERIFY CODE MEMORY */
 	if(verify){
-		cout << "Verifying written memory locations...";
-		if(!log && !debug) cout << "[ 0%]";
-		if(client) cerr << "VRF@00" << endl;
+		cerr << endl << "Verifying written memory locations..." << endl;
+		if(!debug) cerr << "[ 0%]";
+		if(client) fprintf(stdout, "@000");
 		counter = 0;
 
 		send_nop();
@@ -999,35 +982,31 @@ void dspic33e::write(char *infile)
 
 			for(i=0; i<8; i++){
 				if (debug)
-					fprintf(stdout, "\n addr = 0x%06X data = 0x%04X",
-								(addr+i), data[i]);
+					fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr+i), data[i]);
 
 				if(mem.filled[addr+i] && data[i] != mem.location[addr+i]){
-					fprintf(stdout,"\n\n ERROR at address %06X: written %04X but %04X read!\n\n",
+					fprintf(stderr,"\n\n ERROR at address %06X: written %04X but %04X read!\n\n",
 									addr+i, mem.location[addr+i], data[i]);
-					if(client)
-						fprintf(stderr,"MSG@ERROR at address %06X: written %04X but %04X read!\n",
-										addr+i, mem.location[addr+i], data[i]);
-					//return;
+					return;
 				}
 
 			}
 
 			if(counter != addr*100/filled_locations){
-				if(client && counter/10 != addr*10/filled_locations)
-					fprintf(stderr,"VRF@%2d\n", (addr*10/(filled_locations+0x100))*10);
-				if(!log) fprintf(stdout,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
+				if(client)
+					fprintf(stdout,"@%03d", (addr*100/(filled_locations+0x100)));
+				if(!debug)
+					fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 				counter = addr*100/filled_locations;
 			}
 		}
 
-		if(!log && !debug) cout << "\b\b\b\b\b";
-		cout << "DONE!" << endl;
-		if(client) cerr << "VRF@100" << endl;
+		if(!debug) cerr << "\b\b\b\b\b";
+		if(client) fprintf(stdout, "@FIN");
 	}
 	else{
-		cout << "Memory verification skipped." << endl;
-		if(client) cerr << "VRF@SKP" << endl;
+		cerr << "Memory verification skipped." << endl;
+		if(client) fprintf(stdout, "@FIN");
 	}
 
 }
@@ -1038,7 +1017,7 @@ void dspic33e::dump_configuration_registers(void)
 	const char *regname[] = {"FGS","FOSCSEL","FOSC","FWDT","FPOR",
 							"FICD","FAS","FUID0"};
 
-	cout << endl << "Configuration registers:" << endl << endl;
+	cerr << endl << "Configuration registers:" << endl << endl;
 
 	send_nop();
 	send_nop();
@@ -1061,10 +1040,10 @@ void dspic33e::dump_configuration_registers(void)
 		send_nop();
 		send_nop();
 		send_nop();
-		fprintf(stdout," - %s: 0x%02x\n", regname[i], read_data());
+		fprintf(stderr," - %s: 0x%02x\n", regname[i], read_data());
 	}
 
-	cout << endl;
+	cerr << endl;
 
 	send_nop();
 	send_nop();
