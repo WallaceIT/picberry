@@ -211,6 +211,8 @@ void pic24fj::exit_program_mode(void)
 	delay_us(DELAY_P16);
 	GPIO_CLR(pic_mclr);		/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);	/* wait (at least) P17 */
+	GPIO_SET(pic_mclr);
+	GPIO_IN(pic_mclr);
 }
 
 /* read the device ID and revision; returns only the id */
@@ -874,7 +876,6 @@ void pic24fj::write(char *infile)
 
 	/* VERIFY CODE MEMORY */
 	if(verify){
-		cerr << endl << "Verifying written memory locations..." << endl;
 		if(!debug) cerr << "[ 0%]";
 		if(client) fprintf(stdout, "@000");
 		counter = 0;
@@ -1004,7 +1005,6 @@ void pic24fj::write(char *infile)
 		if(client) fprintf(stdout, "@FIN");
 	}
 	else{
-		cerr << "Memory verification skipped." << endl;
 		if(client) fprintf(stdout, "@FIN");
 	}
 

@@ -195,6 +195,8 @@ void dspic33f::exit_program_mode(void)
 	delay_us(DELAY_P16);
 	GPIO_CLR(pic_mclr);		/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);	/* wait (at least) P17 */
+	GPIO_SET(pic_mclr);
+	GPIO_IN(pic_mclr);
 }
 
 /* read the device ID and revision; returns only the id */
@@ -319,8 +321,8 @@ uint8_t dspic33f::blank_check(void)
 		data[6] = raw_data[5];
 
 		if(counter != addr*100/mem.code_memory_size){
-			fprintf(stderr, "\b\b\b\b\b[%2d%%]", addr*100/mem.code_memory_size);
 			counter = addr*100/mem.code_memory_size;
+			fprintf(stderr, "\b\b\b\b\b[%2d%%]", counter);
 		}
 
 		for(i=0; i<8; i++)
@@ -475,12 +477,11 @@ void dspic33f::read(char *outfile, uint32_t start, uint32_t count)
 		}
 
 		if(counter != addr*100/stopaddr){
-			if(client)
-				fprintf(stdout,"@%03d", (addr*100/stopaddr));
-			if(!debug)
-				fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/stopaddr);
-
 			counter = addr*100/stopaddr;
+			if(client)
+				fprintf(stdout,"@%03d", counter);
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 		}
 
 		/* TODO: checksum */
@@ -625,11 +626,11 @@ void dspic33f::write(char *infile)
 		} while((nvmcon & 0x8000) == 0x8000);
 
 		if(counter != addr*100/filled_locations){
-			if(client)
-				fprintf(stdout,"@%03d", (addr*100/(filled_locations)));
-			if(!debug)
-				fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations));
 			counter = addr*100/filled_locations;
+			if(client)
+				fprintf(stdout,"@%03d", counter);
+			if(!debug)
+				fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 		}
 	};
 
@@ -683,7 +684,6 @@ void dspic33f::write(char *infile)
 
 	/* VERIFY CODE MEMORY */
 	if(verify){
-		cerr << endl << "Verifying written memory locations..." << endl;
 		if(!debug) cerr << "[ 0%]";
 		if(client) fprintf(stdout, "@000");
 		counter = 0;
@@ -786,7 +786,6 @@ void dspic33f::write(char *infile)
 		if(client) fprintf(stdout, "@FIN");
 	}
 	else{
-		cerr << "Memory verification skipped." << endl;
 		if(client) fprintf(stdout, "@FIN");
 	}
 

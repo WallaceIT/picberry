@@ -131,7 +131,6 @@ unsigned int read_inhx(char *infile, memory *mem)
                 	checksum_calculated += base_address & 0xFF;
                 	i = 1;
                 }
-
                 else
                 	for (i = 0; i < byte_count/2; i++) {
                 		nread = sscanf(&line[9+4*i], "%4hx", &data);

@@ -85,6 +85,8 @@ void pic_reset(void);
 /* main functions */
 void usage(void);
 void server_mode(int port);
+uint8_t send_file(char * filename);
+uint8_t receive_file(int sock, char * filename);
 
 extern volatile uint32_t *gpio;
 extern int pic_clk, pic_data, pic_mclr;

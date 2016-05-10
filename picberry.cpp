@@ -550,13 +550,19 @@ void server_mode(int port){
                 case SRV_READ:
                     if(program_mode){
                         cerr << "[CMD] Read" << endl;
-                        pic->read((char *)"tmp.hex", 0, 0);
+                        pic->read((char *)"tmpr.hex", 0, 0);
+                        send_file((char *)"tmpr.hex");
                     }
                     break;
                 case SRV_WRITE:
                     if(program_mode){
                         cerr << "[CMD] Write" << endl;
-                        pic->write((char *)"tmp.hex");
+                        if(!receive_file(clientsock, (char *)"tmpw.hex")){
+                            cerr << "File transfer failed!" << endl;
+                            fprintf(stdout, "@ERR");
+                            break;
+                        }
+                        pic->write((char *)"tmpw.hex");
                     }
                     break;
                 case SRV_ERASE:
@@ -575,4 +581,71 @@ void server_mode(int port){
         }
         close(clientsock);
     }
+}
+
+uint8_t send_file(char * filename){
+    
+    FILE *fp;
+    char line[256], *ptr;
+        
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+      	cerr << "Error: cannot open source file " << filename << "." << endl;
+       	return 1;
+    }
+    
+    while (1) {
+        ptr = fgets(line, 256, fp);
+
+        if (ptr != NULL) 
+            cout << line;
+        else
+            break;
+    }
+    fclose(fp);
+    
+    fprintf(stdout, "@FIN");
+    
+    return 0;
+}
+
+uint8_t receive_file(int sock, char * filename){
+    
+    FILE *fp;
+    char line[45];
+    char buffer;
+    bool need_reading = true;
+    int received = -1;
+    int k=0;
+        
+    fp = fopen(filename, "w");
+    if (fp == NULL) {
+      	cerr << "Error: cannot open destination file " << filename << "." << endl;
+       	return 1;
+    }
+    
+    while (need_reading) {
+        for(k=0; k<46; k++){
+            if ((received = recv(sock, &buffer, 1, 0)) < 0)
+                cerr << "Failed to receive bytes from client";
+            // Check if last line
+            if(!received || buffer == '@'){
+                need_reading = false;
+                break;
+            }    
+            else{
+                line[k] = buffer;
+                if(buffer == '\n')
+                break;
+            }
+        }
+        // If not last line...
+        if(need_reading){
+            line[k+1] = '\0';
+            fprintf(fp, line);
+        } 
+    }
+    fclose(fp);
+    
+    return 0;
 }

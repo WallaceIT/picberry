@@ -104,6 +104,8 @@ void pic18fj::exit_program_mode(void)
 	delay_us(DELAY_P16);	/* wait P16 */
 	GPIO_CLR(pic_mclr);			/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);	/* wait (at least) P17 */
+	GPIO_SET(pic_mclr);
+	GPIO_IN(pic_mclr);
 }
 
 /* Send a 4-bit command to the PIC (LSB first) */
@@ -405,7 +407,6 @@ void pic18fj::write(char *infile)
 
 	/* Verify Code Memory and Configuration Word */
 	if(verify){
-		cerr << endl << "Verifying written memory locations..." << endl;
 		if(!debug) cerr << "[ 0%]";
 		if(client) fprintf(stdout, "@000");
 		lcounter = 0;
@@ -441,7 +442,6 @@ void pic18fj::write(char *infile)
 		if(client) fprintf(stdout, "@FIN");
 	}
 	else{
-		cerr << "Memory verification skipped." << endl;
 		if(client) fprintf(stdout, "@FIN");
 	}
 
