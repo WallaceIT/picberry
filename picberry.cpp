@@ -549,19 +549,19 @@ void server_mode(int port){
                 case SRV_READ:
                     if(program_mode){
                         cerr << "[CMD] Read" << endl;
-                        pic->read((char *)"tmpr.hex", 0, 0);
-                        send_file((char *)"tmpr.hex");
+                        pic->read((char *)"/var/tmp/tmpr.hex", 0, 0);
+                        send_file((char *)"/var/tmp/tmpr.hex");
                     }
                     break;
                 case SRV_WRITE:
                     if(program_mode){
                         cerr << "[CMD] Write" << endl;
-                        if(!receive_file(clientsock, (char *)"tmpw.hex")){
+                        if(!receive_file(clientsock, (char *)"/var/tmp/tmpw.hex")){
                             cerr << "File transfer failed!" << endl;
                             fprintf(stdout, "@ERR");
                             break;
                         }
-                        pic->write((char *)"tmpw.hex");
+                        pic->write((char *)"/var/tmp/tmpw.hex");
                     }
                     break;
                 case SRV_ERASE:

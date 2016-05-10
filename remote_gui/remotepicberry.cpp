@@ -222,7 +222,6 @@ void RemotePicberry::sendFile(){
     QTextStream stream(&file);
     while(!stream.atEnd()){
         line = stream.readLine();
-        qDebug() << line;
         QByteArray ba = line.toUtf8();
         picberry_socket.write(ba.data());
         picberry_socket.putChar('\n');
