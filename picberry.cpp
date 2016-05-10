@@ -105,11 +105,10 @@ int main(int argc, char *argv[])
             {"blankcheck", 0, 0, 'b'},
             {"registerdump", 0, 0, 'd'},
             {"reset", 0, 0, 'R'},
-            {"silent", 0, 0, 'x'},
             {"log", 1, 0, 'l'}
     };
 
-    while ((opt = getopt_long(argc, argv, "hS:Dl:ng:c:s:f:r:w:ebdRx",
+    while ((opt = getopt_long(argc, argv, "hS:Dl:ng:c:s:f:r:w:ebdR",
                               long_options, &option_index)) != -1) {
         switch (opt) {
         case 'h':
@@ -392,7 +391,7 @@ void usage(void)
 "Usage: picberry [options]" << endl << endl <<
 "   Programming Options" << endl << endl <<
 "       -h                print help" << endl <<
-"       -x                silent mode" << endl <<
+"       -S port           server mode, listening on given port" << endl <<
 "       -l [file]         redirect the output to log file(s)" << endl <<
 "       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)" << endl <<

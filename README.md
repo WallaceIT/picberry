@@ -108,12 +108,11 @@ for AM335x:
 
 Photos of the setup can be find in the [Wiki] (../../wiki/Setup Images).
 
-# Web client
+# Remote GUI
 
-To use the web client, copy the `web` folder in a position accessible from your php-enabled webserver; make sure that php has safemode disabled and the user who run the server has write permissions to /dev/mem.
+Remote GUI is written in Qt5 and allows to control a picberry session running in *server mode* (that is, launched with the  `-S <port>` command line argument).
 
-NOTE that the web client is in beta stage and has only been tested under [mongoose](https://github.com/cesanta/mongoose).
-Please report any issues you will find!
+To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 
 # References
 
