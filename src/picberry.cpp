@@ -40,10 +40,10 @@
 #include <fstream>
 
 #include "common.h"
-#include "dspic33f.h"
-#include "dspic33e.h"
-#include "pic18fj.h"
-#include "pic24fj.h"
+#include "devices/dspic33f.h"
+#include "devices/dspic33e.h"
+#include "devices/pic18fj.h"
+#include "devices/pic24fj.h"
 
 int                 mem_fd;
 void                *gpio_map;
@@ -286,9 +286,12 @@ int main(int argc, char *argv[])
                     break;
             };
         }
-        else
+        else{
+		    fprintf(stdout,"Device ID: 0x%x\n", pic ->device_id);
             cout << "ERROR: unknown/unsupported device "
                     "or programmer not connected." << endl;
+        }
+            
 
         pic->exit_program_mode();
         

@@ -1,7 +1,7 @@
 /*
  * Raspberry Pi PIC Programmer using GPIO connector
  * https://github.com/WallaceIT/picberry
- * Copyright 2014 Francesco Valla
+ * Copyright 2016 Francesco Valla
  *
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,23 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#ifndef COMMON_H_
-#define COMMON_H_
-
-#if defined(BOARD_A10)
-#include "a10.h"
-#elif defined(BOARD_RPI)
-#include "rpi.h"
-#elif defined(BOARD_AM335X)
-#include "am335x.h"
-#endif
-
-using namespace std;
-
-#define VERSION "0.1"
-
-struct memory{
+ 
+#ifndef DEVICE_H_
+#define DEVICE_H_
+ 
+ struct memory{
 		uint32_t	program_memory_size;   	// size in WORDS (16bits each)
 		uint32_t	code_memory_size;		// size in WORDS (16bits each)
 		uint16_t	*location;		// 16-bit data
@@ -70,29 +58,4 @@ class Pic{
 		virtual uint8_t blank_check(void) = 0;
 };
 
-/* Low-level functions */
-void delay_us(unsigned int howLong);
-void setup_io(void);
-void close_io(void);
-
-/* inhx.cpp functions */
-unsigned int read_inhx(char *infile, memory *mem);
-void write_inhx(memory *mem, char *outfile);
-
-/* Runtime Functions */
-void pic_reset(void);
-
-/* main functions */
-void usage(void);
-void server_mode(int port);
-uint8_t send_file(char * filename);
-uint8_t receive_file(int sock, char * filename);
-
-extern volatile uint32_t *gpio;
-extern int pic_clk, pic_data, pic_mclr;
-extern bool debug;
-extern bool verify;
-extern bool client;
-extern bool log;
-
-#endif /* COMMON_H_ */
+#endif

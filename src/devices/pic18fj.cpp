@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "common.h"
 #include "pic18fj.h"
 
 /* delays (in microseconds) */

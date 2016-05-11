@@ -23,8 +23,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "common.h"
-#include "pic24fj.h"
+#include "dspic33e.h"
 
 /* delays (in microseconds; nanoseconds are rounded to 1us) */
 #define DELAY_P1   		1		// 200ns
@@ -36,14 +35,14 @@
 #define DELAY_P4A		1		// 40ns
 #define DELAY_P5		1		// 20ns
 #define DELAY_P6		1		// 100ns
-#define DELAY_P7		50000	// 50ms
+#define DELAY_P7		25000	// 25ms
 #define DELAY_P8		12		// 12us
 #define DELAY_P9A		10		// 10us
 #define DELAY_P9B		15		// 15us - 23us max!
 #define DELAY_P10		1		// 400ns
-#define DELAY_P11		25000	// 25ms
-#define DELAY_P12		25000	// 25ms
-#define DELAY_P13		20		// 20us
+#define DELAY_P11		116000	// 116ms
+#define DELAY_P12		23000	// 23ms
+#define DELAY_P13		1600	// 1.6ms
 #define DELAY_P14		1		// 1us MAX!
 #define DELAY_P15		1		// 10ns
 #define DELAY_P16		0		// 0s
@@ -62,7 +61,7 @@ static unsigned int counter=0;
 static uint16_t nvmcon;
 
 /* Send a 24-bit command to the PIC (LSB first) through a SIX instruction */
-void pic24fj::send_cmd(uint32_t cmd)
+void dspic33e::send_cmd(uint32_t cmd)
 {
 	uint8_t i;
 
@@ -95,7 +94,7 @@ void pic24fj::send_cmd(uint32_t cmd)
 }
 
 /* Send five NOPs (should be with a frequency greater than 2MHz...) */
-inline void pic24fj::send_prog_nop(void)
+inline void dspic33e::send_prog_nop(void)
 {
 	uint8_t i;
 
@@ -111,7 +110,7 @@ inline void pic24fj::send_prog_nop(void)
 }
 
 /* Read 16-bit data word from the PIC (LSB first) through a REGOUT inst */
-uint16_t pic24fj::read_data(void)
+uint16_t dspic33e::read_data(void)
 {
 	uint8_t i;
 	uint16_t data = 0;
@@ -160,7 +159,7 @@ uint16_t pic24fj::read_data(void)
 }
 
 /* enter program mode */
-void pic24fj::enter_program_mode(void)
+void dspic33e::enter_program_mode(void)
 {
 	int i;
 
@@ -204,7 +203,7 @@ void pic24fj::enter_program_mode(void)
 }
 
 /* exit program mode */
-void pic24fj::exit_program_mode(void)
+void dspic33e::exit_program_mode(void)
 {
 	GPIO_CLR(pic_clk);
 	GPIO_CLR(pic_data);
@@ -216,7 +215,7 @@ void pic24fj::exit_program_mode(void)
 }
 
 /* read the device ID and revision; returns only the id */
-bool pic24fj::read_device_id(void)
+bool dspic33e::read_device_id(void)
 {
 	bool found = 0;
 
@@ -268,10 +267,11 @@ bool pic24fj::read_device_id(void)
 	}
 
 	return found;
+
 }
 
 /* Check if the device is blank */
-uint8_t pic24fj::blank_check(void)
+uint8_t dspic33e::blank_check(void)
 {
 	uint32_t addr;
 	unsigned short i;
@@ -413,7 +413,7 @@ uint8_t pic24fj::blank_check(void)
 }
 
 /* Bulk erase the chip */
-void pic24fj::bulk_erase(void)
+void dspic33e::bulk_erase(void)
 {
 
     send_nop();
@@ -455,12 +455,12 @@ void pic24fj::bulk_erase(void)
 		send_nop();
 		send_nop();
 	} while((nvmcon & 0x8000) == 0x8000);
-
+	
 	if(client) fprintf(stdout, "@FIN");
 }
 
 /* Read PIC memory and write the contents to a .hex file */
-void pic24fj::read(char *outfile, uint32_t start, uint32_t count)
+void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 {
 	uint32_t addr, startaddr, stopaddr;
 	uint16_t data[8], raw_data[6];
@@ -646,7 +646,7 @@ void pic24fj::read(char *outfile, uint32_t start, uint32_t count)
 }
 
 /* Write contents of the .hex file to the PIC */
-void pic24fj::write(char *infile)
+void dspic33e::write(char *infile)
 {
 	uint16_t i,j,p;
 	uint16_t k;
@@ -871,7 +871,7 @@ void pic24fj::write(char *infile)
 	}
 
 	if(debug) cerr << endl;
-	
+
 	delay_us(100000);
 
 	/* VERIFY CODE MEMORY */
@@ -1011,7 +1011,7 @@ void pic24fj::write(char *infile)
 }
 
 /* write to screen the configuration registers, without saving them anywhere */
-void pic24fj::dump_configuration_registers(void)
+void dspic33e::dump_configuration_registers(void)
 {
 	const char *regname[] = {"FGS","FOSCSEL","FOSC","FWDT","FPOR",
 							"FICD","FAS","FUID0"};

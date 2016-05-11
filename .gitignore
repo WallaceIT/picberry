@@ -2,3 +2,6 @@
 *~
 picberry
 *.hex
+build*
+.vscode
+*.user
