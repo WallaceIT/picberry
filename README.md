@@ -57,6 +57,7 @@ Programming Options
 	-h                print help
 	-D                turn ON debug
 	-g PGC,PGD,MCLR   GPIO selection in form PORT:NUM, default if not present
+	-S port			  server mode, listening on given port                
 	-f family		  PIC family (dspic33e, dspic33f or 18fj)
 	-i file           input file
 	-o file           output file (default: ofile.hex)
@@ -127,6 +128,3 @@ picberry is released under the GPLv3 license; for full license see the `LICENSE`
 
 The Microchip name and logo, PIC, In-Circuit Serial Programming, ICSP are registered trademarks of Microchip Technology Incorporated in the U.S.A. and other countries.
 Raspberry Pi is a trademark of The Raspberry Pi Foundation.
-jquery is (c) 2005, 2014 jQuery Foundation, Inc.
-
-
