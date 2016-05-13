@@ -1,7 +1,7 @@
 /*
  * Raspberry Pi PIC Programmer using GPIO connector
  * https://github.com/WallaceIT/picberry
- * Copyright 2014 Francesco Valla
+ * Copyright 2016 Francesco Valla
  *
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,41 +25,44 @@
 
 using namespace std;
 
-#define SF_DSPIC33E		0x00
-#define SF_PIC24FJ		0x01
+#define SF_PIC32MX1		0x00
+#define SF_PIC32MX2		0x00
+#define SF_PIC32MX3		0x02
+#define SF_PIC32MZ		0x03
+#define SF_PIC32MK		0x04
 
-class dspic33e : public Pic{
+class pic32: public Pic{
 
 	public:
 		void enter_program_mode(void);
 		void exit_program_mode(void);
-		bool setup_pe(void){return true;};
+		bool setup_pe(void);
 		bool read_device_id(void);
 		void bulk_erase(void);
 		void dump_configuration_registers(void);
-		void read(char *outfile, uint32_t start, uint32_t count);
+		void read(char *outfile, uint32_t start=0, uint32_t count=0);
 		void write(char *infile);
 		uint8_t blank_check(void);
 
 	protected:
-		void send_cmd(uint32_t cmd);
-		inline void send_prog_nop(void);
-		uint16_t read_data(void);
+		uint8_t Data4Phase(uint8_t tdi, uint8_t tms);
+		void Data2Phase(uint8_t tdi, uint8_t tms);
+		void SetMode(uint8_t length, uint8_t mode);
+		void SendCommand(uint8_t command);
+		uint32_t XferData(uint8_t length, uint32_t iData);
+		void XferFastData2P(uint32_t iData);
+		uint32_t XferFastData4P(uint32_t iData);
+		void XferInstruction(uint32_t instruction);
+		uint32_t ReadFromAddress(uint32_t address);
+		uint32_t GetPEResponse(void);
+		bool check_device_status(void);
+		void code_protected_bulk_erase(void);
+		bool enter_serial_exec_mode(void);
+		bool download_pe(char *pe_infile);
 
 		/*
 		* DEVICES SECTION
-		*                       ID       NAME           	  MEMSIZE
+		*                    	ID       NAME           MEMSIZE (16bit words)
 		*/
-		pic_device piclist[12] = {{0x1861, "dsPIC33EP256MU806", 0x02ABFF},
-								  {0x1862, "dsPIC33EP256MU810", 0x02ABFF},
-								  {0x1863, "dsPIC33EP256MU814", 0x02ABFF},
-								  {0x1826, "PIC24EP256GU810", 0x02ABFF},
-								  {0x1827, "PIC24EP256GU814", 0x02ABFF},
-								  {0x187D, "dsPIC33EP512GP806", 0x02ABFF},
-								  {0x1879, "dsPIC33EP512MC806", 0x0557FF},
-								  {0x1872, "dsPIC33EP512MU810", 0x0557FF},
-								  {0x1873, "dsPIC33EP512MU814", 0x0557FF},
-								  {0x183D, "PIC24EP512GP806", 0x0557FF},
-								  {0x1836, "PIC24EP512GU810", 0x0557FF},
-								  {0x1837, "PIC24EP512GU814", 0x0557FF}};
+		pic_device piclist[1] = {{0x04d00053,  "PIC32MX250F128B", 0x10000}};
 };

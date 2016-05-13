@@ -29,7 +29,7 @@
 };
 
 struct pic_device{
-	uint16_t    device_id;
+	uint32_t    device_id;
 	char        name[25];
 	int			code_memory_size;	/* size in WORDS (16bits each)  */
 };
@@ -37,23 +37,26 @@ struct pic_device{
 class Pic{
 
 	public:
-		uint16_t 		device_id;
+		uint32_t 		device_id;
 		uint16_t 		device_rev;
+		uint8_t			subfamily;
 		char			name[25];
 		memory 			mem;
 
-		Pic(){
+		Pic(uint8_t sf=0){
 			device_id=0;
 			device_rev=0;
-			};
+			subfamily=sf;
+		};
 		virtual ~Pic(){};
 
 		virtual void enter_program_mode(void) = 0;
 		virtual void exit_program_mode(void) = 0;
+		virtual bool setup_pe(void) = 0;
 		virtual bool read_device_id(void) = 0;
 		virtual void bulk_erase(void) = 0;
 		virtual void dump_configuration_registers(void) = 0;
-		virtual void read(char *outfile, uint32_t start, uint32_t count) = 0;
+		virtual void read(char *outfile, uint32_t start=0, uint32_t count=0) = 0;
 		virtual void write(char *infile) = 0;
 		virtual uint8_t blank_check(void) = 0;
 };

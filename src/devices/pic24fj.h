@@ -31,16 +31,13 @@ class pic24fj : public Pic{
 
 		void enter_program_mode(void);
 		void exit_program_mode(void);
+		bool setup_pe(void){return true;};
 		bool read_device_id(void);
 		void bulk_erase(void);
 		void dump_configuration_registers(void);
 		void read(char *outfile, uint32_t start, uint32_t count);
 		void write(char *infile);
 		uint8_t blank_check(void);
-		
-		bool check_device_status(void);
-		bool enter_serial_exec_mode(void);
-		bool download_pe(char *pe_infile);
 
 	protected:
 		void send_cmd(uint32_t cmd);

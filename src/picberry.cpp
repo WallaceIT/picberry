@@ -44,6 +44,7 @@
 #include "devices/dspic33e.h"
 #include "devices/pic18fj.h"
 #include "devices/pic24fj.h"
+#include "devices/pic32.h"
 
 int                 mem_fd;
 void                *gpio_map;
@@ -237,6 +238,8 @@ int main(int argc, char *argv[])
             pic = new pic24fj();
         else if(strcmp(family,"pic18fj") == 0)
             pic = new pic18fj();
+        else if(strcmp(family,"pic32") == 0)
+            pic = new pic32();
         else{
             cerr << "ERROR: PIC family not correctly chosen." << endl;
             goto clean;
@@ -244,6 +247,7 @@ int main(int argc, char *argv[])
 
         /* ENTER PROGRAM MODE */
         pic -> enter_program_mode();
+        pic -> setup_pe();
 
         if(pic -> read_device_id()){  // Read devide ID and setup memory
         

@@ -34,7 +34,7 @@ using namespace std;
  * Returns the number of filled locations
  *
  */
-unsigned int read_inhx(char *infile, memory *mem)
+unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
 {
         FILE *fp;
         int linenum;
@@ -147,9 +147,9 @@ unsigned int read_inhx(char *infile, memory *mem)
                 		extended_address = ( ((uint32_t)base_address << 16) | address);
                 		if (debug)
                 			fprintf(stderr, " @0x%08X\n", extended_address/2+i);
-
-                		mem->location[extended_address/2 + i]   = data;
-                		mem->filled[extended_address/2 + i] = 1;
+						
+                		mem->location[extended_address/2 + i - offset/2] = data;
+                		mem->filled[extended_address/2 + i - offset/2] = 1;
                 		filled_locations++;
                 	}
 
@@ -192,7 +192,7 @@ unsigned int read_inhx(char *infile, memory *mem)
 
 /* Write the filled cells in given memory struct
  * to an Intel HEX8M or HEX32 file */
-void write_inhx(memory *mem, char *outfile)
+void write_inhx(memory *mem, char *outfile, uint32_t offset)
 {
 	FILE *fp;
 	uint32_t base, j, k, start, stop;
@@ -229,7 +229,7 @@ void write_inhx(memory *mem, char *outfile)
 		byte_count  = (stop - start)*2;
 
 		if (byte_count > 0) {
-			address = (base + start)*2;
+			address = (base + start)*2+offset;
 			record_type = 0x00;
 
 			if(mem -> program_memory_size >= 0x10000 && (address >> 16) != base_address){  //extended linear address

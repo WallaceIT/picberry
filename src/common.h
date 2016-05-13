@@ -41,8 +41,8 @@ void setup_io(void);
 void close_io(void);
 
 /* inhx.cpp functions */
-unsigned int read_inhx(char *infile, memory *mem);
-void write_inhx(memory *mem, char *outfile);
+unsigned int read_inhx(char *infile, memory *mem, uint32_t offset=0);
+void write_inhx(memory *mem, char *outfile, uint32_t offset=0);
 
 /* Runtime Functions */
 void pic_reset(void);

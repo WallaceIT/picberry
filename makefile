@@ -19,7 +19,8 @@ endif
 DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/dspic33f.o \
 		  $(BUILDDIR)/devices/pic18fj.o \
-		  $(BUILDDIR)/devices/pic24fj.o
+		  $(BUILDDIR)/devices/pic24fj.o \
+		  $(BUILDDIR)/devices/pic32.o
 
 a10: CFLAGS += -DBOARD_A10
 raspberrypi: CFLAGS += -DBOARD_RPI
