@@ -92,6 +92,8 @@ uint32_t pe_loader_op_codes[] = {
 	0x00000000  // nop
 };
 
+#define PE_BASEADDR 			0x00000900
+
 #define PE_CMD_ROW_PROGRAM 		0x00000000
 #define PE_CMD_READ				0x00010000
 #define PE_CMD_PROGRAM			0x00020000
@@ -111,11 +113,10 @@ uint32_t pe_loader_op_codes[] = {
 #define PE_RESPONSE_CODE_FAIL	0x02
 #define PE_RESPONSE_CODE_NACK	0x03
 
-#define PROGRAM_FLASH_OFFSET	0x1D000000
-#define CONFIG_OFFSET			0x1FC00000
-#define SFRS_LIMIT				0x1FC00010
-#define BOOTFLASH_OFFSET		0x1FC00000
-#define BOOTFLASH_LIMIT			0x1FC00BFF
+#define PROGRAM_FLASH_BASEADDR	0x1D000000
+#define BOOTFLASH_OFFSET		0x02C00000
+#define PROGRAM_AREA			0
+#define BOOT_AREA				1
 
 void pic32::enter_program_mode(void)
 {
@@ -433,6 +434,7 @@ void pic32::code_protected_bulk_erase(void){
 	do{
 		statusVal = XferData(8, MCHP_STATUS);
 	} while((statusVal & 0x0C) != 0x08);
+	if(client) fprintf(stdout, "@FIN");
 }
 
 bool pic32::enter_serial_exec_mode(void){
@@ -460,10 +462,7 @@ bool pic32::enter_serial_exec_mode(void){
 
 bool pic32::download_pe(char *pe_infile){
 	
-	int i;
-	unsigned int k;
-	int addr=0x00000480;
-	uint32_t opcode = 0;
+	uint32_t i;
 	
 	if(subfamily == SF_PIC32MX1 || subfamily == SF_PIC32MX2 || subfamily == SF_PIC32MX3){
 		// PIC32MX devices only: Initialize BMXCON to 0x1F0040
@@ -513,11 +512,11 @@ bool pic32::download_pe(char *pe_infile){
 	
 	SendCommand(ETAP_FASTDATA);
 	
-	XferFastData4P(0xa0000900); // (Address of PE program block from PE Hex file)
+	XferFastData4P(PE_BASEADDR); 	// Address of PE program block
 	XferFastData4P(filled_locations/2); // Number of 32-bit words of the program block from PE Hex file
-	for(k=0; k<filled_locations; k+=2){
-		opcode = (uint32_t)mem.location[addr+k] | ((uint32_t)mem.location[addr+k+1] << 16);
-		XferFastData4P(opcode); // PE software op code from PE Hex file (PE Instructions)
+	for(i=0; i<filled_locations; i+=2){
+		XferFastData4P((uint32_t)mem.location[PE_BASEADDR/2+i] |
+					   ((uint32_t)mem.location[PE_BASEADDR/2+i+1] << 16)); // PE software op code from PE Hex file (PE Instructions)
 	}
 	
 	free(mem.location);
@@ -539,12 +538,14 @@ bool pic32::setup_pe(void){
 	
 	switch(subfamily){
 		case SF_PIC32MX1:
+		case SF_PIC32MX2:
 			pe_file = "pe/RIPE_11.hex";
 			break;
 		case SF_PIC32MX3:
 			pe_file = "pe/RIPE_06.hex";
 			break;
 		case SF_PIC32MZ:
+		case SF_PIC32MK:
 			pe_file = "pe/RIPE_15.hex";
 			break;
 		default:
@@ -576,8 +577,22 @@ bool pic32::read_device_id(void){
 	
 	SendCommand(ETAP_FASTDATA);
 	XferFastData4P(PE_CMD_READ | 0x01);
-	XferFastData4P(0x1F80F220);
-	rxp = GetPEResponse();
+	
+	switch(subfamily){
+		case SF_PIC32MX1:
+		case SF_PIC32MX2:
+		case SF_PIC32MX3:
+			XferFastData4P(0x1F80F220);
+			break;
+		case SF_PIC32MZ:
+		case SF_PIC32MK:
+			XferFastData4P(0x1F800020);
+			break;
+		default:
+			XferFastData4P(0x1F80F220);
+			break;
+	}
+	GetPEResponse();
 	rxp = GetPEResponse();
 	device_id = (rxp & 0x0FFFFFFF);
 	device_rev = (uint16_t)(rxp >> 28);
@@ -593,6 +608,30 @@ bool pic32::read_device_id(void){
 			found = true;
 			break;
 		}
+	}
+	
+	switch(subfamily){
+		case SF_PIC32MX1:
+		case SF_PIC32MX2:
+			rowsize  = 128;
+			bootsize = 0x00000C00;
+			break;
+		case SF_PIC32MX3:
+			rowsize  = 512;
+			bootsize = 0x00003000;
+			break;
+		case SF_PIC32MK:
+			rowsize  = 2048;
+			bootsize = 0x00005000;
+			break;
+		case SF_PIC32MZ:
+			rowsize  = 2048;
+			bootsize = 0x00014000;
+			break;
+		default:
+			rowsize  = 128;
+			bootsize = 0x00000C00;
+			break;
 	}
 	
 	return found;
@@ -615,8 +654,8 @@ uint8_t pic32::blank_check(void){
 	uint32_t rxp = 0;
 	SendCommand(ETAP_FASTDATA);
 	XferFastData4P(PE_CMD_BLANK_CHECK);
-	XferFastData4P(PROGRAM_FLASH_OFFSET);
-	XferFastData4P(mem.code_memory_size);
+	XferFastData4P(PROGRAM_FLASH_BASEADDR);
+	XferFastData4P(mem.code_memory_size*2);
 	rxp = GetPEResponse();
 	if(rxp==PE_CMD_BLANK_CHECK)
 		return 0;
@@ -626,46 +665,45 @@ uint8_t pic32::blank_check(void){
 
 void pic32::read(char *outfile, uint32_t start, uint32_t count){
 	uint32_t rxp = 0;
-	uint16_t blocksize;	// expressed in 32bit words
-	uint32_t counter = 0, i = 0;
-	uint8_t area = 0;
+	uint32_t blocksize = 0;	// expressed in bytes
+	uint32_t counter = 0, read_locations = 0, i = 0;
+	uint8_t area = PROGRAM_AREA;
 	uint32_t addr=0, startaddr = 0, stopaddr = 0;
 		
 	if(!debug) cerr << "[ 0%]";
 	if(client) fprintf(stdout, "@000");
 	
-	while(area<2){
-
+	do{
 		switch(area){
-			case 0:	// Read Program Flash (0x1D000000 to 0x1D000000+CodeMem)
+			case PROGRAM_AREA:	// Read Program Flash (0x1D000000 to 0x1D000000+CodeMem)
 				startaddr = 0;
-				stopaddr = (mem.code_memory_size-1)*2;
-				blocksize = 0xFFFF;
-				if((mem.code_memory_size/2) < 0xFFFF)
-					blocksize = (mem.code_memory_size/2);
+				stopaddr = (mem.code_memory_size*2)-1;
+				blocksize = 0x0000FFFF*4;
+				if((mem.code_memory_size*2) < 0x0000FFFF*4)
+					blocksize = (mem.code_memory_size*2);
 				break;
-			case 1:	// Read bootflash+configuration
-				startaddr = BOOTFLASH_OFFSET-PROGRAM_FLASH_OFFSET;
-				stopaddr  = BOOTFLASH_LIMIT-PROGRAM_FLASH_OFFSET;
-				blocksize = 0x0C00/4;
+			case BOOT_AREA:	// Read bootflash+configuration
+				startaddr = BOOTFLASH_OFFSET;
+				blocksize = bootsize;
+				stopaddr = startaddr+blocksize;
 				break;
 			default:
 				break;
 		}
 		
 		// addr is espressed in BYTES
-		for(addr=startaddr; addr<stopaddr;addr+=4*blocksize){
+		for(addr=startaddr; addr<stopaddr; addr+=blocksize){
 			
 			SendCommand(ETAP_FASTDATA);
-			XferFastData4P(PE_CMD_READ | blocksize);
-			XferFastData4P(PROGRAM_FLASH_OFFSET+addr);
+			XferFastData4P(PE_CMD_READ | (blocksize/4));
+			XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
 			
 			rxp = GetPEResponse();
-			if(rxp != 0x00010000)
+			if(rxp != PE_CMD_READ)
 				fprintf(stderr, "___ERR___: %08x\n", rxp);
 			
 			// i is expressed in BYTES
-			for(i=0; i < 4*blocksize; i+=4){
+			for(i=0; i < blocksize; i+=4){
 				rxp = GetPEResponse();
 				if(rxp != 0xFFFFFFFF){
 					mem.location[(addr+i)/2] = rxp & 0x0000FFFF;
@@ -673,9 +711,11 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 					mem.location[(addr+i)/2+1] = rxp >> 16;
 					mem.filled[(addr+i)/2+1] = 1;
 				}
+				
+				read_locations += 4;
 		
-				if(area == 0 && counter != (addr+i)*100/(mem.code_memory_size*2)){
-					counter = (addr+i)*100/(mem.code_memory_size*2);
+				if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
+					counter = read_locations*100/(mem.code_memory_size*2+bootsize);
 					if(client)
 						fprintf(stdout,"@%03d", counter);
 					if(!debug)
@@ -685,91 +725,138 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		}
 
 		area++;
-	}
+	} while(area <= BOOT_AREA);
 
 	if(!debug) cerr << "\b\b\b\b\b";
 	if(client) fprintf(stdout, "@FIN");
-	write_inhx(&mem, outfile, PROGRAM_FLASH_OFFSET);
+	write_inhx(&mem, outfile, PROGRAM_FLASH_BASEADDR);
 };
 
 void pic32::write(char *infile){
 	uint32_t rxp = 0;
+	uint8_t area = PROGRAM_AREA;
 	uint32_t addr = 0, startaddr = 0, stopaddr = 0;
-	unsigned int filled_locations;
+	uint32_t filled_locations = 0, programmed_locations = 0;
 	bool skip = true;
 	uint32_t counter = 0;
-	uint8_t area = 0;
+	uint32_t device_checksum = 0, calculated_checksum = 0;
 	
-	filled_locations = read_inhx(infile, &mem, PROGRAM_FLASH_OFFSET);
+	filled_locations = read_inhx(infile, &mem, PROGRAM_FLASH_BASEADDR);
 	if(!filled_locations) return;
+	
+	bulk_erase();
 	
 	if(!debug) cerr << "[ 0%]";
 	if(client) fprintf(stdout, "@000");
 	
-	while(area<2){
+	do{
 
 		switch(area){
-			case 0:	// Write Program Flash (0x1D000000 to 0x1D000000+CodeMem)
+			case PROGRAM_AREA:	// Write Program Flash
 				startaddr = 0;
-				stopaddr = (mem.code_memory_size-1)*2;
+				stopaddr = (mem.code_memory_size*2)-1;
 				break;
-			case 1:	// Write bootflash+configuration
-				startaddr = BOOTFLASH_OFFSET-PROGRAM_FLASH_OFFSET;
-				stopaddr  = BOOTFLASH_LIMIT-PROGRAM_FLASH_OFFSET;
+			case BOOT_AREA:	// Write bootflash+configuration
+				startaddr = BOOTFLASH_OFFSET;
+				stopaddr = startaddr+bootsize-1;
 				break;
 			default:
 				break;
 		}
 	
-		for (addr = startaddr; addr < stopaddr; addr += 128){
+		for (addr = startaddr; addr < stopaddr; addr += rowsize){
 			
 			skip = true;
-			for(int j=0;j<64;j++){
-				if(mem.filled[(addr/2)+j]){
+			for(uint32_t i=0; i<rowsize; i++){
+				if(mem.filled[(addr+i)/2]){
 					skip = false;
 					break;
 				}
 			}
-			if(skip)
+			if(skip){
+				calculated_checksum += 0x000000FF*rowsize;
 				continue;
+			}
 			
 			SendCommand(ETAP_FASTDATA);
 			XferFastData4P(PE_CMD_ROW_PROGRAM);
-			XferFastData4P(PROGRAM_FLASH_OFFSET+addr);
+			XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
 			
-			for(uint32_t i=0;i<128;i+=4){
-				if(mem.filled[(addr+i)/2])
+			for(uint32_t i=0; i<rowsize; i+=4){
+				if(mem.filled[(addr+i)/2]){
 					XferFastData4P((uint32_t)mem.location[(addr+i)/2] |
 							   	   ((uint32_t)mem.location[(addr+i)/2+1] << 16));
-				else
+					programmed_locations += 2;
+					if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16)){
+						calculated_checksum += (mem.location[(addr+i)/2] & 0x00FF) +
+											   (mem.location[(addr+i)/2] >> 8) +
+											   (mem.location[(addr+i)/2+1] & 0x00FF) +
+											   (mem.location[(addr+i)/2+1] >> 8);
+					}
+				}
+				else{
 					XferFastData4P(0xFFFFFFFF);
+					if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16))
+						calculated_checksum += 0x000000FF*4;
+				}
 			}
 			rxp = GetPEResponse();
-			if(rxp != 0)
+			if(rxp != PE_CMD_ROW_PROGRAM)
 				fprintf(stderr, "___ERR___: %08x\n", rxp);
 				
-			if(counter != addr*100/(mem.program_memory_size*2)){
-				counter = addr*100/(mem.program_memory_size*2);
+			if(counter != programmed_locations*100/filled_locations){
+				counter = programmed_locations*100/filled_locations;
 				if(client)
 					fprintf(stdout,"@%03d", counter);
-				if(false)
+				if(!debug)
 					fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 			}
 		}
 		
 		area++;
+	} while(area<=BOOT_AREA);
+	
+	if(!debug) cerr << "\b\b\b\b\b\b";
+	if(client) fprintf(stdout, "@FIN");
+	
+	// Checksum verification
+	// Program area checksum
+	SendCommand(ETAP_FASTDATA);
+	XferFastData4P(PE_CMD_GET_CHECKSUM);
+	XferFastData4P(PROGRAM_FLASH_BASEADDR);
+	XferFastData4P(mem.code_memory_size*2);
+	rxp = GetPEResponse();
+	if(rxp != PE_CMD_GET_CHECKSUM)
+		fprintf(stderr, "___ERR___: %08x\n", rxp);
+	device_checksum = GetPEResponse();
+	
+	// Boot area checksum
+	SendCommand(ETAP_FASTDATA);
+	XferFastData4P(PE_CMD_GET_CHECKSUM);
+	XferFastData4P(PROGRAM_FLASH_BASEADDR+BOOTFLASH_OFFSET);
+	XferFastData4P(bootsize-16);
+	rxp = GetPEResponse();
+	if(rxp != PE_CMD_GET_CHECKSUM)
+		fprintf(stderr, "___ERR___: %08x\n", rxp);
+	device_checksum += GetPEResponse();
+	
+	if(calculated_checksum != device_checksum){
+		fprintf(stderr, "___CHECKSUM ERROR!___\n");
+		fprintf(stderr, "DEVICE CHECKSUM: %08x\n", device_checksum);
+		fprintf(stderr, "CALCULATED CHECKSUM: %08x\n", calculated_checksum);
+		if(client) fprintf(stdout, "@ERR");
+		return;
 	}
 	
-	if(!debug) cerr << "\b\b\b\b\b";
 	if(client) fprintf(stdout, "@FIN");
 };
 void pic32::dump_configuration_registers(void){
 	SendCommand(ETAP_FASTDATA);
 	XferFastData4P(PE_CMD_READ | 0x04);
-	XferFastData4P(0x1FC00BF0);
+	XferFastData4P(PROGRAM_FLASH_BASEADDR+BOOTFLASH_OFFSET+bootsize-16);
 	GetPEResponse();
-	for(uint8_t r=0;r<4;r++){
-		fprintf(stderr, "DEVCFG%d = %08x\n", r, (GetPEResponse()));
+	for(uint8_t r=3; r>-1; r--){
+		fprintf(stderr, "DEVCFG%d = %08x\n", 3-r, (GetPEResponse()));
 		
 	}
 };

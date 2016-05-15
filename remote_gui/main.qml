@@ -71,6 +71,14 @@ ApplicationWindow {
                           + "https://github.com/WallaceIT/picberry"
     }
 
+    MessageDialog {
+        id: timeoutDialog
+        icon: StandardIcon.Critical
+        title: "Timeout"
+        text: "A timeout occurred!"
+        informativeText: "Please check the device family."
+    }
+
     FileDialog {
         id: saveDialog
         title: "Save as..."
@@ -230,6 +238,11 @@ ApplicationWindow {
                                 ListElement { text: "dspic33f"; value: "1" }
                                 ListElement { text: "pic18fj"; value: "2" }
                                 ListElement { text: "pic24fj"; value: "3" }
+                                ListElement { text: "pic32mx1"; value: "4" }
+                                ListElement { text: "pic32mx2"; value: "5" }
+                                ListElement { text: "pic32mx3"; value: "6" }
+                                ListElement { text: "pic32mz"; value: "7" }
+                                ListElement { text: "pic32mk"; value: "8" }
                             }
                         }
                         Item {width: 20}
@@ -239,13 +252,20 @@ ApplicationWindow {
                             checked: false
                             onCheckedChanged: {
                                 if(this.checked){
-                                    picberry.enterProgramMode()
                                     picberry.setFamily(familyList.get(familyListBox.currentIndex).value)
+                                    picberry.enterProgramMode()
                                     familyListBox.enabled = false
-                                    var d = eval('new Object(' + picberry.getDeviceID() + ')')
-                                    deviceName.text = d.DevName
-                                    deviceID.text = d.DevID
-                                    deviceRevision.text = d.DevRev
+                                    var devid = picberry.getDeviceID()
+                                    if(devid === "NC"){
+                                        this.checked = false
+                                        timeoutDialog.open()
+                                    }
+                                    else{
+                                        var d = eval('new Object(' + devid + ')')
+                                        deviceName.text = d.DevName
+                                        deviceID.text = d.DevID
+                                        deviceRevision.text = d.DevRev
+                                    }
                                 }
                                 else{
                                     picberry.exitProgramMode()

@@ -26,7 +26,7 @@
 using namespace std;
 
 #define SF_PIC32MX1		0x00
-#define SF_PIC32MX2		0x00
+#define SF_PIC32MX2		0x01
 #define SF_PIC32MX3		0x02
 #define SF_PIC32MZ		0x03
 #define SF_PIC32MK		0x04
@@ -34,6 +34,9 @@ using namespace std;
 class pic32: public Pic{
 
 	public:
+		pic32(uint8_t sf){
+			subfamily=sf;
+		};
 		void enter_program_mode(void);
 		void exit_program_mode(void);
 		bool setup_pe(void);
@@ -59,6 +62,9 @@ class pic32: public Pic{
 		void code_protected_bulk_erase(void);
 		bool enter_serial_exec_mode(void);
 		bool download_pe(char *pe_infile);
+		
+		uint32_t bootsize;
+		uint32_t rowsize;
 
 		/*
 		* DEVICES SECTION

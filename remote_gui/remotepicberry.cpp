@@ -48,10 +48,11 @@ void RemotePicberry::run()
 {
     char response[6];
     int percentage = 0;
-    bool run_twice = false;
+    bool multi_round = false;
+    int round = 0;
 
     if(mode == SRV_WRITE){
-        run_twice = true;
+        multi_round = true;
         sendFile();
         sendFinishFileSend();
     }
@@ -61,8 +62,17 @@ void RemotePicberry::run()
            picberry_socket.waitForReadyRead()){
             picberry_socket.readLine(response, 5);
             qDebug() << response;
-            if(QString(response) == "@FIN" && !run_twice){
-                working = false;
+            if(QString(response) == "@FIN"){
+                if(!multi_round){
+                    working=false;
+                }
+                else if(multi_round && round==1){
+                    sendFinishFirstRun();
+                }
+                else if(multi_round && round==2){
+                    working = false;
+                }
+                round++;
             }
             else if(QString(response) == "@ERR"){
                 sendError();
@@ -72,10 +82,6 @@ void RemotePicberry::run()
             else{
                 sscanf(response, "@%d", &percentage);
                 sendProgress(percentage);
-                if(QString(response) == "@100" && run_twice){
-                    sendFinishFirstRun();
-                    run_twice = false;
-                }
             }
         }
     }
@@ -122,7 +128,7 @@ QString RemotePicberry::getPicberryVersion() {
     picberry_socket.putChar(SRV_PB_VER);
     picberry_socket.write("\r\n");
     picberry_socket.flush();
-    if(picberry_socket.waitForReadyRead(3000)){
+    if(picberry_socket.waitForReadyRead(300)){
         picberry_socket.readLine(response, 9);
         qDebug() << "getPicberryVersion: " << response;
         return QString(response);
@@ -140,7 +146,7 @@ QString RemotePicberry::setFamily(const QString &family) {
     picberry_socket.write(ba.data());
     picberry_socket.write("\r\n");
     picberry_socket.flush();
-    if(picberry_socket.waitForReadyRead(3000)){
+    if(picberry_socket.waitForReadyRead(300)){
         picberry_socket.readLine(response, 10);
         qDebug() << "setFamily: " << response;
         return QString(response);
@@ -152,12 +158,12 @@ QString RemotePicberry::setFamily(const QString &family) {
 }
 
 QString RemotePicberry::getDeviceID() {
-    char response[75];
+    char response[100];
     picberry_socket.putChar(SRV_DEV_ID);
     picberry_socket.write("\r\n");
     picberry_socket.flush();
     if(picberry_socket.waitForReadyRead(3000)){
-        picberry_socket.readLine(response, 75);
+        picberry_socket.readLine(response, 100);
         qDebug() << "getDeviceID: " << response;
         return QString(response);
     }

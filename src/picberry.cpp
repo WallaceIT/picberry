@@ -43,7 +43,6 @@
 #include "devices/dspic33f.h"
 #include "devices/dspic33e.h"
 #include "devices/pic18fj.h"
-#include "devices/pic24fj.h"
 #include "devices/pic32.h"
 
 int                 mem_fd;
@@ -233,13 +232,21 @@ int main(int argc, char *argv[])
         if(family == 0 || strcmp(family, "dspic33f") == 0);
             //pic = new dspic33f(); default case, nothing to do
         else if(strcmp(family,"dspic33e") == 0)
-            pic = new dspic33e();
+            pic = new dspic33e(SF_DSPIC33E);
         else if(strcmp(family,"pic24fj") == 0)
-            pic = new pic24fj();
+            pic = new dspic33e(SF_PIC24FJ);
         else if(strcmp(family,"pic18fj") == 0)
             pic = new pic18fj();
-        else if(strcmp(family,"pic32") == 0)
-            pic = new pic32();
+        else if(strcmp(family,"pic32mx1") == 0)
+            pic = new pic32(SF_PIC32MX1);
+        else if(strcmp(family,"pic32mx2") == 0)
+            pic = new pic32(SF_PIC32MX2);
+        else if(strcmp(family,"pic32mx3") == 0)
+            pic = new pic32(SF_PIC32MX3);
+        else if(strcmp(family,"pic32mz") == 0)
+            pic = new pic32(SF_PIC32MZ);
+        else if(strcmp(family,"pic32mk") == 0)
+            pic = new pic32(SF_PIC32MK);   
         else{
             cerr << "ERROR: PIC family not correctly chosen." << endl;
             goto clean;
@@ -252,8 +259,8 @@ int main(int argc, char *argv[])
         if(pic -> read_device_id()){  // Read devide ID and setup memory
         
             fprintf(stdout,"Device Name: %s\n", pic -> name);
-		    fprintf(stdout,"Device ID: 0x%x\n", pic ->device_id);
-            fprintf(stderr,"Revision: 0x%x\n", pic ->device_rev);
+		    fprintf(stdout,"Device ID: 0x%08x\n", pic ->device_id);
+            fprintf(stderr,"Revision: 0x%08x\n", pic ->device_rev);
 
             switch (function){
                 case FXN_NULL:          // no function selected, exit
@@ -436,9 +443,14 @@ enum srv_command : char{
 
 enum srv_families : char{
     SRV_FAM_DSPIC33E = '0',
-    SRV_FAM_DSPIC33F,
-    SRV_FAM_PIC18FJ,
-    SRV_FAM_PIC24FJ
+    SRV_FAM_DSPIC33F = '1',
+    SRV_FAM_PIC18FJ  = '2',
+    SRV_FAM_PIC24FJ  = '3',
+    SRV_FAM_PIC32MX1 = '4',
+    SRV_FAM_PIC32MX2 = '5',
+    SRV_FAM_PIC32MX3 = '6',
+    SRV_FAM_PIC32MZ  = '7',
+    SRV_FAM_PIC32MK  = '8'
 };
 
 void server_mode(int port){
@@ -458,9 +470,9 @@ void server_mode(int port){
     }
     /* Construct the server sockaddr_in structure */
     memset(&pbserver, 0, sizeof(pbserver));       /* Clear struct */
-    pbserver.sin_family = AF_INET;                  /* Internet/IP */
-    pbserver.sin_addr.s_addr = htonl(INADDR_ANY);   /* Incoming addr */
-    pbserver.sin_port = htons(port);       /* server port */
+    pbserver.sin_family = AF_INET;                /* Internet/IP */
+    pbserver.sin_addr.s_addr = htonl(INADDR_ANY); /* Incoming addr */
+    pbserver.sin_port = htons(port);              /* server port */
     
      /* Bind the server socket */      
     if (bind(serversock, (struct sockaddr *) &pbserver, sizeof(pbserver)) < 0) {
@@ -474,7 +486,7 @@ void server_mode(int port){
     }
     
     /* Setup picberry operation */
-    Pic *pic = new dspic33e();
+    Pic *pic = new dspic33f();
     
     /* Run until cancelled */
     while (1) {
@@ -511,6 +523,7 @@ void server_mode(int port){
                 case SRV_ENTER:
                     cerr << "[CMD] Enter Program Mode" << endl;
                     pic -> enter_program_mode();
+                    pic -> setup_pe();
                     program_mode = 1;
                     break;
                 case SRV_EXIT:
@@ -521,18 +534,46 @@ void server_mode(int port){
                     }
                     break;
                 case SRV_SET_FAMILY:
-                    cerr << "[CMD] Set Family" << endl;
-
-                    free(pic);
-                        
-                    if(buffer[1] == SRV_FAM_DSPIC33E)
-                        pic = new dspic33e();
-                    else if(buffer[1] == SRV_FAM_DSPIC33F)
-                        pic = new dspic33f();
-                    else if(buffer[1] == SRV_FAM_PIC18FJ)
-                        pic = new pic18fj();
-                    else if(buffer[1] == SRV_FAM_PIC24FJ)
-                        pic = new pic24fj();
+                    cerr << "[CMD] Set Family ";
+                    
+                    switch(buffer[1]){
+                        case SRV_FAM_DSPIC33E:
+                            cerr << "DSPIC33E" << endl;
+                            pic = new dspic33e(SF_DSPIC33E);
+                            break;
+                        case SRV_FAM_DSPIC33F:
+                            cerr << "DSPIC33F" << endl;
+                            pic = new dspic33f();
+                            break;
+                        case SRV_FAM_PIC18FJ:
+                            cerr << "PIC18FJ" << endl;
+                            pic = new pic18fj();
+                            break;
+                        case SRV_FAM_PIC24FJ:
+                            cerr << "PIC24FJ" << endl;
+                            pic = new dspic33e(SF_PIC24FJ);
+                            break;
+                        case SRV_FAM_PIC32MX1:
+                            cerr << "PIC32MX1" << endl;
+                            pic = new pic32(SF_PIC32MX1);
+                            break;
+                        case SRV_FAM_PIC32MX2:
+                            cerr << "PIC32MX2" << endl;
+                            pic = new pic32(SF_PIC32MX2);
+                            break;
+                        case SRV_FAM_PIC32MX3:
+                            cerr << "PIC32MX3" << endl;
+                            pic = new pic32(SF_PIC32MX3);
+                            break;
+                        case SRV_FAM_PIC32MZ:
+                            cerr << "PIC32MZ" << endl;
+                            pic = new pic32(SF_PIC32MZ);
+                            break;
+                        case SRV_FAM_PIC32MK:
+                            cerr << "PIC32MK" << endl;
+                            pic = new pic32(SF_PIC32MK);
+                            break;
+                    }
                         
                     fprintf(stdout, "K%c", buffer[1]);
                     break;
@@ -541,7 +582,7 @@ void server_mode(int port){
                         if(debug) cerr << "[CMD] Read Device ID" << endl;
                         pic -> read_device_id();
                         fprintf(stdout,
-                                "{\"DevName\" : \"%s\", \"DevID\" : \"0x%04X\", \"DevRev\" : \"0x%04X\"}",
+                                "{\"DevName\" : \"%s\", \"DevID\" : \"0x%08X\", \"DevRev\" : \"0x%08X\"}",
                                 pic->name,
                                 pic->device_id,
                                 pic->device_rev);
@@ -563,7 +604,7 @@ void server_mode(int port){
                 case SRV_WRITE:
                     if(program_mode){
                         cerr << "[CMD] Write" << endl;
-                        if(!receive_file(clientsock, (char *)"/var/tmp/tmpw.hex")){
+                        if(receive_file(clientsock, (char *)"/var/tmp/tmpw.hex")){
                             cerr << "File transfer failed!" << endl;
                             fprintf(stdout, "@ERR");
                             break;
@@ -583,8 +624,9 @@ void server_mode(int port){
             
             /* Check for more data */
             if ((received = recv(clientsock, buffer, BUFFSIZE, 0)) < 0)
-                cerr << "Failed to receive additional bytes from client";
+                cerr << "Error." << endl;
         }
+        cerr << "Client disconnected." << endl;
         close(clientsock);
     }
 }
