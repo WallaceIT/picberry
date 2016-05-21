@@ -458,7 +458,8 @@ void server_mode(int port){
     struct sockaddr_in pbserver, pbclient;
     char buffer[BUFFSIZE];
     int received = -1;
-    bool program_mode = 0;
+    bool program_mode = false;
+    char current_family = 0;
     
     /* Set picberry to work in "client" mode */
     client = 1;
@@ -487,6 +488,7 @@ void server_mode(int port){
     
     /* Setup picberry operation */
     Pic *pic = new dspic33f();
+    current_family = SRV_FAM_DSPIC33F;
     
     /* Run until cancelled */
     while (1) {
@@ -521,71 +523,86 @@ void server_mode(int port){
                     pic_reset();
                     break;
                 case SRV_ENTER:
-                    cerr << "[CMD] Enter Program Mode" << endl;
-                    pic -> enter_program_mode();
-                    pic -> setup_pe();
-                    program_mode = 1;
+                    if(!program_mode){
+                        cerr << "[CMD] Enter Program Mode" << endl;
+                        pic -> enter_program_mode();
+                        if(pic -> setup_pe())
+                            program_mode = true;
+                        else
+                            pic -> exit_program_mode();
+                    }
                     break;
                 case SRV_EXIT:
                     if(program_mode){
                         cerr << "[CMD] Exit Program Mode" << endl;
                         pic -> exit_program_mode();
-                        program_mode = 0;   
+                        program_mode = false;   
                     }
                     break;
                 case SRV_SET_FAMILY:
                     cerr << "[CMD] Set Family ";
                     
-                    switch(buffer[1]){
-                        case SRV_FAM_DSPIC33E:
-                            cerr << "DSPIC33E" << endl;
-                            pic = new dspic33e(SF_DSPIC33E);
-                            break;
-                        case SRV_FAM_DSPIC33F:
-                            cerr << "DSPIC33F" << endl;
-                            pic = new dspic33f();
-                            break;
-                        case SRV_FAM_PIC18FJ:
-                            cerr << "PIC18FJ" << endl;
-                            pic = new pic18fj();
-                            break;
-                        case SRV_FAM_PIC24FJ:
-                            cerr << "PIC24FJ" << endl;
-                            pic = new dspic33e(SF_PIC24FJ);
-                            break;
-                        case SRV_FAM_PIC32MX1:
-                            cerr << "PIC32MX1" << endl;
-                            pic = new pic32(SF_PIC32MX1);
-                            break;
-                        case SRV_FAM_PIC32MX2:
-                            cerr << "PIC32MX2" << endl;
-                            pic = new pic32(SF_PIC32MX2);
-                            break;
-                        case SRV_FAM_PIC32MX3:
-                            cerr << "PIC32MX3" << endl;
-                            pic = new pic32(SF_PIC32MX3);
-                            break;
-                        case SRV_FAM_PIC32MZ:
-                            cerr << "PIC32MZ" << endl;
-                            pic = new pic32(SF_PIC32MZ);
-                            break;
-                        case SRV_FAM_PIC32MK:
-                            cerr << "PIC32MK" << endl;
-                            pic = new pic32(SF_PIC32MK);
-                            break;
+                    if(current_family != buffer[1]){
+                        current_family = buffer[1];
+                    
+                        switch(buffer[1]){
+                            case SRV_FAM_DSPIC33E:
+                                cerr << "DSPIC33E" << endl;
+                                pic = new dspic33e(SF_DSPIC33E);
+                                break;
+                            case SRV_FAM_DSPIC33F:
+                                cerr << "DSPIC33F" << endl;
+                                pic = new dspic33f();
+                                break;
+                            case SRV_FAM_PIC18FJ:
+                                cerr << "PIC18FJ" << endl;
+                                pic = new pic18fj();
+                                break;
+                            case SRV_FAM_PIC24FJ:
+                                cerr << "PIC24FJ" << endl;
+                                pic = new dspic33e(SF_PIC24FJ);
+                                break;
+                            case SRV_FAM_PIC32MX1:
+                                cerr << "PIC32MX1" << endl;
+                                pic = new pic32(SF_PIC32MX1);
+                                break;
+                            case SRV_FAM_PIC32MX2:
+                                cerr << "PIC32MX2" << endl;
+                                pic = new pic32(SF_PIC32MX2);
+                                break;
+                            case SRV_FAM_PIC32MX3:
+                                cerr << "PIC32MX3" << endl;
+                                pic = new pic32(SF_PIC32MX3);
+                                break;
+                            case SRV_FAM_PIC32MZ:
+                                cerr << "PIC32MZ" << endl;
+                                pic = new pic32(SF_PIC32MZ);
+                                break;
+                            case SRV_FAM_PIC32MK:
+                                cerr << "PIC32MK" << endl;
+                                pic = new pic32(SF_PIC32MK);
+                                break;
+                        }
                     }
-                        
+                    else{
+                        cerr << "not needed." << endl;
+                    }
                     fprintf(stdout, "K%c", buffer[1]);
                     break;
                 case SRV_DEV_ID:
                     if(program_mode){
                         if(debug) cerr << "[CMD] Read Device ID" << endl;
-                        pic -> read_device_id();
-                        fprintf(stdout,
-                                "{\"DevName\" : \"%s\", \"DevID\" : \"0x%08X\", \"DevRev\" : \"0x%08X\"}",
-                                pic->name,
-                                pic->device_id,
-                                pic->device_rev);
+                        if(pic -> read_device_id())
+                            fprintf(stdout,
+                                    "{\"DevName\" : \"%s\", \"DevID\" : \"0x%08X\", \"DevRev\" : \"0x%08X\"}",
+                                    pic->name,
+                                    pic->device_id,
+                                    pic->device_rev);
+                        else{
+                            fprintf(stdout, "NC");
+                            pic -> exit_program_mode();
+                            program_mode = false;
+                        }
                     }
                     break;
                 case SRV_BLANKCHECK:
@@ -627,6 +644,10 @@ void server_mode(int port){
                 cerr << "Error." << endl;
         }
         cerr << "Client disconnected." << endl;
+        if(program_mode){
+            pic -> exit_program_mode();
+            program_mode = false;   
+        }
         close(clientsock);
     }
 }
