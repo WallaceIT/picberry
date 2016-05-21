@@ -74,9 +74,9 @@ ApplicationWindow {
     MessageDialog {
         id: timeoutDialog
         icon: StandardIcon.Critical
-        title: "Timeout"
-        text: "A timeout occurred!"
-        informativeText: "Please check the device family."
+        title: "Error"
+        text: "An error occurred!"
+        informativeText: "Please check physical connections and device family."
     }
 
     FileDialog {
@@ -341,6 +341,9 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 text: "Reset"
                 enabled: !programModeSwitch.checked
+                onClicked: {
+                    picberry.reset()
+                }
             }
 
         }

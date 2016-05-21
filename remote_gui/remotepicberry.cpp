@@ -111,6 +111,12 @@ void RemotePicberry::disconnectSocket() {
     picberry_socket.disconnectFromHost();
 }
 
+void RemotePicberry::reset() {
+    picberry_socket.putChar(SRV_RESET);
+    picberry_socket.write("\r\n");
+    picberry_socket.flush();
+}
+
 void RemotePicberry::enterProgramMode() {
     picberry_socket.putChar(SRV_ENTER);
     picberry_socket.write("\r\n");

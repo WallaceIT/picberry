@@ -34,6 +34,7 @@ public:
 
     Q_INVOKABLE bool connectSocket(const QString &address, int port);
     Q_INVOKABLE void disconnectSocket();
+    Q_INVOKABLE void reset();
     Q_INVOKABLE void enterProgramMode();
     Q_INVOKABLE void exitProgramMode();
     Q_INVOKABLE QString getPicberryVersion();
