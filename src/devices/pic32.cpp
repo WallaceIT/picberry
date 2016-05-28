@@ -160,6 +160,8 @@ void pic32::exit_program_mode(void)
 	delay_us(DELAY_P16);		/* wait P16 */
 	GPIO_CLR(pic_mclr);			/* remove VDD from MCLR pin */
 	delay_us(DELAY_P17);		/* wait (at least) P17 */
+	GPIO_SET(pic_mclr);
+	GPIO_IN(pic_mclr);
 }
 
 /* PSEUDO OPERATIONS */
@@ -553,7 +555,7 @@ bool pic32::setup_pe(void){
 	}
 	
 	if(!check_device_status()){
-        cerr << "TIMEOUT!" << endl;
+        cerr << "Timeout occurred checking device status!" << endl;
         return false;
     }
         
@@ -855,8 +857,7 @@ void pic32::dump_configuration_registers(void){
 	XferFastData4P(PE_CMD_READ | 0x04);
 	XferFastData4P(PROGRAM_FLASH_BASEADDR+BOOTFLASH_OFFSET+bootsize-16);
 	GetPEResponse();
-	for(uint8_t r=3; r>-1; r--){
+	for(uint8_t r=0; r<4; r++){
 		fprintf(stderr, "DEVCFG%d = %08x\n", 3-r, (GetPEResponse()));
-		
 	}
 };
