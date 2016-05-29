@@ -642,39 +642,41 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 				break;
 		}
 		
-		// addr is espressed in BYTES
-		for(addr=startaddr; addr<stopaddr; addr+=blocksize){
-			
-			SendCommand(ETAP_FASTDATA);
-			XferFastData4P(PE_CMD_READ | (blocksize/4));
-			XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
-			
-			rxp = GetPEResponse();
-			if(rxp != PE_CMD_READ)
-				fprintf(stderr, "___ERR___: %08x\n", rxp);
-			
-			// i is expressed in BYTES
-			for(i=0; i < blocksize; i+=4){
-				rxp = GetPEResponse();
-				if(rxp != 0xFFFFFFFF){
-					mem.location[(addr+i)/2] = rxp & 0x0000FFFF;
-					mem.filled[(addr+i)/2] = 1;
-					mem.location[(addr+i)/2+1] = rxp >> 16;
-					mem.filled[(addr+i)/2+1] = 1;
-				}
-				
-				read_locations += 4;
+		if(((area == PROGRAM_AREA) & !flags.boot_only) || ((area == BOOT_AREA) & !flags.program_only)){
 		
-				if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
-					counter = read_locations*100/(mem.code_memory_size*2+bootsize);
-					if(flags.client)
-						fprintf(stdout,"@%03d", counter);
-					if(!flags.debug)
-						fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
-				}	
+			// addr is espressed in BYTES
+			for(addr=startaddr; addr<stopaddr; addr+=blocksize){
+				
+				SendCommand(ETAP_FASTDATA);
+				XferFastData4P(PE_CMD_READ | (blocksize/4));
+				XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
+				
+				rxp = GetPEResponse();
+				if(rxp != PE_CMD_READ)
+					fprintf(stderr, "___ERR___: %08x\n", rxp);
+				
+				// i is expressed in BYTES
+				for(i=0; i < blocksize; i+=4){
+					rxp = GetPEResponse();
+					if(rxp != 0xFFFFFFFF){
+						mem.location[(addr+i)/2] = rxp & 0x0000FFFF;
+						mem.filled[(addr+i)/2] = 1;
+						mem.location[(addr+i)/2+1] = rxp >> 16;
+						mem.filled[(addr+i)/2+1] = 1;
+					}
+					
+					read_locations += 4;
+			
+					if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
+						counter = read_locations*100/(mem.code_memory_size*2+bootsize);
+						if(flags.client)
+							fprintf(stdout,"@%03d", counter);
+						if(!flags.debug)
+							fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
+					}	
+				}
 			}
 		}
-
 		area++;
 	} while(area <= BOOT_AREA);
 
@@ -714,56 +716,58 @@ void pic32::write(char *infile){
 			default:
 				break;
 		}
+		
+		if(((area == PROGRAM_AREA) & !flags.boot_only) || ((area == BOOT_AREA) & !flags.program_only)){
 	
-		for (addr = startaddr; addr < stopaddr; addr += rowsize){
-			
-			skip = true;
-			for(uint32_t i=0; i<rowsize; i++){
-				if(mem.filled[(addr+i)/2]){
-					skip = false;
-					break;
-				}
-			}
-			if(skip){
-				calculated_checksum += 0x000000FF*rowsize;
-				continue;
-			}
-			
-			SendCommand(ETAP_FASTDATA);
-			XferFastData4P(PE_CMD_ROW_PROGRAM);
-			XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
-			
-			for(uint32_t i=0; i<rowsize; i+=4){
-				if(mem.filled[(addr+i)/2]){
-					XferFastData4P((uint32_t)mem.location[(addr+i)/2] |
-							   	   ((uint32_t)mem.location[(addr+i)/2+1] << 16));
-					programmed_locations += 2;
-					if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16)){
-						calculated_checksum += (mem.location[(addr+i)/2] & 0x00FF) +
-											   (mem.location[(addr+i)/2] >> 8) +
-											   (mem.location[(addr+i)/2+1] & 0x00FF) +
-											   (mem.location[(addr+i)/2+1] >> 8);
+			for (addr = startaddr; addr < stopaddr; addr += rowsize){
+				
+				skip = true;
+				for(uint32_t i=0; i<rowsize; i++){
+					if(mem.filled[(addr+i)/2]){
+						skip = false;
+						break;
 					}
 				}
-				else{
-					XferFastData4P(0xFFFFFFFF);
-					if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16))
-						calculated_checksum += 0x000000FF*4;
+				if(skip){
+					calculated_checksum += 0x000000FF*rowsize;
+					continue;
+				}
+				
+				SendCommand(ETAP_FASTDATA);
+				XferFastData4P(PE_CMD_ROW_PROGRAM);
+				XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
+				
+				for(uint32_t i=0; i<rowsize; i+=4){
+					if(mem.filled[(addr+i)/2]){
+						XferFastData4P((uint32_t)mem.location[(addr+i)/2] |
+									((uint32_t)mem.location[(addr+i)/2+1] << 16));
+						programmed_locations += 2;
+						if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16)){
+							calculated_checksum += (mem.location[(addr+i)/2] & 0x00FF) +
+												(mem.location[(addr+i)/2] >> 8) +
+												(mem.location[(addr+i)/2+1] & 0x00FF) +
+												(mem.location[(addr+i)/2+1] >> 8);
+						}
+					}
+					else{
+						XferFastData4P(0xFFFFFFFF);
+						if((addr+i) < (BOOTFLASH_OFFSET+bootsize-16))
+							calculated_checksum += 0x000000FF*4;
+					}
+				}
+				rxp = GetPEResponse();
+				if(rxp != PE_CMD_ROW_PROGRAM)
+					fprintf(stderr, "___ERR___: %08x\n", rxp);
+					
+				if(counter != programmed_locations*100/filled_locations){
+					counter = programmed_locations*100/filled_locations;
+					if(flags.client)
+						fprintf(stdout,"@%03d", counter);
+					if(!flags.debug)
+						fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 				}
 			}
-			rxp = GetPEResponse();
-			if(rxp != PE_CMD_ROW_PROGRAM)
-				fprintf(stderr, "___ERR___: %08x\n", rxp);
-				
-			if(counter != programmed_locations*100/filled_locations){
-				counter = programmed_locations*100/filled_locations;
-				if(flags.client)
-					fprintf(stdout,"@%03d", counter);
-				if(!flags.debug)
-					fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
-			}
 		}
-		
 		area++;
 	} while(area<=BOOT_AREA);
 	

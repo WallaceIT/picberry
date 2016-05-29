@@ -105,8 +105,10 @@ int main(int argc, char *argv[])
             {"regdump",     no_argument,       0,           'd'},
             {"reset",       no_argument,       0,           'R'},
             {"log",         required_argument, 0,           'l'},
-            {"debug",       no_argument,       &flags.debug,      1},
-            {"noverify",    no_argument,       &flags.noverify,   1},
+            {"debug",       no_argument,       &flags.debug,        1},
+            {"noverify",    no_argument,       &flags.noverify,     1},
+            {"boot-only",   no_argument,       &flags.boot_only,    1},
+            {"program-only",no_argument,       &flags.program_only, 1},
             {0, 0, 0, 0}
     };
 

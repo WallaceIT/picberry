@@ -60,6 +60,8 @@ struct flags_struct {
    int debug = 0;
    int client = 0;
    int noverify = 0;
+   int boot_only = 0;
+   int program_only = 0;
 };
 
 extern struct flags_struct flags;
