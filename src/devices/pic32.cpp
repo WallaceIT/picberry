@@ -63,35 +63,6 @@
 #define MCHP_FLASH_ENABLE	0xFE // Enables fetches and loads to the Flash (from the processor).
 #define MCHP_FLASH_DISABLE 	0xFD // Disables fetches and loads to the Flash (from the processor).
 
-#define PE_LOADER_OP_CODES_NUMBER 21
-
-uint32_t pe_loader_op_codes[] = {
-	0x3c07dead, // lui a3, 0xdead
-	0x3c06ff20, // lui a2, 0xff20
-	0x3c05ff20, // lui al, 0xff20
-	// here1
-	0x8cc40000, // lw a0, 0 (a2)
-	0x8cc30000, // lw v1, 0 (a2)
-	0x1067000b, // beq v1, a3, <here3>
-	0x00000000, // nop
-	0x1060fffb, // beqz v1, <here1>
-	0x00000000, // nop
-	// here2
-	0x8ca20000, // lw v0, 0 (a1)
-	0x2463ffff, // addiu v1, v1, -1
-	0xac820000, // sw v0, 0 (a0)
-	0x24840004, // addiu a0, a0, 4
-	0x1460fffb, // bnez v1, <here2>
-	0x00000000, // nop
-	0x1000fff3, // b <here1>
-	0x00000000, // nop
-	// here3
-	0x3c02a000, // lui v0, 0xa000
-	0x34420900, // ori v0, v0, 0x900
-	0x00400008, // jr v0
-	0x00000000  // nop
-};
-
 #define PE_BASEADDR 			0x00000900
 
 #define PE_CMD_ROW_PROGRAM 		0x00000000
@@ -462,7 +433,7 @@ bool pic32::enter_serial_exec_mode(void){
 	return true;
 }
 
-bool pic32::download_pe(char *pe_infile){
+bool pic32::download_pe(vector<uint32_t> pe_pointer){
 	
 	uint32_t i;
 	
@@ -500,30 +471,17 @@ bool pic32::download_pe(char *pe_infile){
 	XferInstruction(0x03200008);
 	XferInstruction(0x00000000);
 	
-	// Allocate PE memory
-	mem.code_memory_size = 0x2000;
-	mem.program_memory_size = 0x2000;
-	mem.location = (uint16_t*) calloc(mem.program_memory_size,sizeof(uint16_t));
-	mem.filled = (bool*) calloc(mem.program_memory_size,sizeof(bool));
-	
-	
 	// Load the PE using the PE_Loader.
-	unsigned int filled_locations = read_inhx(pe_infile, &mem);
-	if(!filled_locations)
-		return 0;
+	uint32_t pe_size = pe_pointer.size();
 	
 	SendCommand(ETAP_FASTDATA);
 	
 	XferFastData4P(PE_BASEADDR); 	// Address of PE program block
-	XferFastData4P(filled_locations/2); // Number of 32-bit words of the program block from PE Hex file
-	for(i=0; i<filled_locations; i+=2){
-		XferFastData4P((uint32_t)mem.location[PE_BASEADDR/2+i] |
-					   ((uint32_t)mem.location[PE_BASEADDR/2+i+1] << 16)); // PE software op code from PE Hex file (PE Instructions)
+	XferFastData4P(pe_size); // Number of 32-bit words of the program block from PE Hex file
+	for(i=0; i<pe_size; i++){
+		XferFastData4P(pe_pointer[i]); // PE software op code from PE Hex file (PE Instructions)
 	}
-	
-	free(mem.location);
-	free(mem.filled);
-	
+
 	// Jump to PE
 	XferFastData4P(0x00000000);
 	XferFastData4P(0xdead0000);
@@ -536,19 +494,19 @@ bool pic32::download_pe(char *pe_infile){
 
 bool pic32::setup_pe(void){
 	
-	string pe_file;
+	vector<uint32_t> pe_pointer;
 	
 	switch(subfamily){
 		case SF_PIC32MX1:
 		case SF_PIC32MX2:
-			pe_file = "pe/RIPE_11.hex";
+			pe_pointer = pic32_pemx1;
 			break;
 		case SF_PIC32MX3:
-			pe_file = "pe/RIPE_06.hex";
+			pe_pointer = pic32_pemx3;
 			break;
 		case SF_PIC32MZ:
 		case SF_PIC32MK:
-			pe_file = "pe/RIPE_15.hex";
+			pe_pointer = pic32_pemz;
 			break;
 		default:
 			return false;
@@ -564,7 +522,7 @@ bool pic32::setup_pe(void){
         return false;
     }
         
-    if(!download_pe((char *)pe_file.c_str())){
+    if(!download_pe(pe_pointer)){
     	cerr << "Error downloading PE!" << endl;
         return false;
     }
