@@ -433,7 +433,7 @@ bool pic32::enter_serial_exec_mode(void){
 	return true;
 }
 
-bool pic32::download_pe(vector<uint32_t> pe_pointer){
+void pic32::download_pe(vector<uint32_t> pe_pointer){
 	
 	uint32_t i;
 	
@@ -458,9 +458,9 @@ bool pic32::download_pe(vector<uint32_t> pe_pointer){
 	XferInstruction(0x34840800);
 	
 	// Load the PE_Loader
-	for(i=0;i<PE_LOADER_OP_CODES_NUMBER;i++){
-		XferInstruction(0x3c060000 | (pe_loader_op_codes[i] >> 16));
-		XferInstruction(0x34c60000 | (pe_loader_op_codes[i] & 0x0000ffff));
+	for(i=0;i<pe_loader.size();i++){
+		XferInstruction(0x3c060000 | (pe_loader[i] >> 16));
+		XferInstruction(0x34c60000 | (pe_loader[i] & 0x0000ffff));
 		XferInstruction(0xac860000);
 		XferInstruction(0x24840004);
 	};
@@ -488,29 +488,9 @@ bool pic32::download_pe(vector<uint32_t> pe_pointer){
 	
 	XferFastData4P(PE_CMD_EXEC_VERSION);
 	GetPEResponse();
-	
-	return 1;
 }
 
 bool pic32::setup_pe(void){
-	
-	vector<uint32_t> pe_pointer;
-	
-	switch(subfamily){
-		case SF_PIC32MX1:
-		case SF_PIC32MX2:
-			pe_pointer = pic32_pemx1;
-			break;
-		case SF_PIC32MX3:
-			pe_pointer = pic32_pemx3;
-			break;
-		case SF_PIC32MZ:
-		case SF_PIC32MK:
-			pe_pointer = pic32_pemz;
-			break;
-		default:
-			return false;
-	}
 	
 	if(!check_device_status()){
         cerr << "Timeout occurred checking device status!" << endl;
@@ -521,11 +501,22 @@ bool pic32::setup_pe(void){
     	cerr << "Error entering serial exec mode!" << endl;
         return false;
     }
-        
-    if(!download_pe(pe_pointer)){
-    	cerr << "Error downloading PE!" << endl;
-        return false;
-    }
+	
+	switch(subfamily){
+		case SF_PIC32MX1:
+		case SF_PIC32MX2:
+			download_pe(pic32_pemx1);
+			break;
+		case SF_PIC32MX3:
+			download_pe(pic32_pemx3);
+			break;
+		case SF_PIC32MZ:
+		case SF_PIC32MK:
+			download_pe(pic32_pemz);
+			break;
+		default:
+			return false;
+	}
 	
 	return true;
 }
