@@ -60,7 +60,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
         	return 0;
         }
 
-        if(debug) cerr << "Reading hex file..." << endl;
+        if(flags.debug) cerr << "Reading hex file..." << endl;
 
         linenum = 0;
         while (1) {
@@ -69,7 +69,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
             if (ptr != NULL) {
             	linenum++;
                 linelen = strlen(line);
-                if (debug) {
+                if (flags.debug) {
                 	fprintf(stderr, "  line %d (%zd bytes): '", linenum, linelen);
                     for (i = 0; i < linelen; i++) {
                     	if (line[i] == '\n')
@@ -92,7 +92,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 	cerr << "Error: cannot read byte count." << endl;
                 	return 0;
                 }
-                if (debug) fprintf(stderr, "  byte_count  = 0x%02X\n", byte_count);
+                if (flags.debug) fprintf(stderr, "  byte_count  = 0x%02X\n", byte_count);
 
                 nread = sscanf(&line[3], "%4hx", &address);
                 if (nread != 1) {
@@ -106,9 +106,9 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 	return 0;
                 }
 
-                if (debug && record_type != 0x04) fprintf(stderr, "  address     = 0x%04X\n", address);
+                if (flags.debug && record_type != 0x04) fprintf(stderr, "  address     = 0x%04X\n", address);
 
-                if (debug)
+                if (flags.debug)
                 	fprintf(stderr, "  record_type = 0x%02X (%s)\n",
                 			record_type, record_type == 0 ? "data" :
                 				(record_type == 1 ? "EOF" :
@@ -126,7 +126,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
 
                 if(record_type == 0x04){
                 	nread = sscanf(&line[9], "%4hx", &base_address);
-                	if (debug) fprintf(stderr, "  NEW BASE ADDRESS     = 0x%04X\n", base_address);
+                	if (flags.debug) fprintf(stderr, "  NEW BASE ADDRESS     = 0x%04X\n", base_address);
                 	checksum_calculated += (base_address >> 8) & 0xFF;
                 	checksum_calculated += base_address & 0xFF;
                 	i = 1;
@@ -140,12 +140,12 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 		}
                 		tmp = data;
                 		data = (data >> 8) | (tmp << 8);
-                		if (debug) fprintf(stderr, "  data        = 0x%04X", data);
+                		if (flags.debug) fprintf(stderr, "  data        = 0x%04X", data);
                 		checksum_calculated += (data >> 8) & 0xFF;
                 		checksum_calculated += data & 0xFF;
 
                 		extended_address = ( ((uint32_t)base_address << 16) | address);
-                		if (debug)
+                		if (flags.debug)
                 			fprintf(stderr, " @0x%08X\n", extended_address/2+i);
 						
                 		mem->location[extended_address/2 + i - offset/2] = data;
@@ -160,17 +160,17 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 	cerr << "Error: cannot read checksum." << endl;
                 	return 0;
                 }
-                if (debug) fprintf(stderr, "  checksum    = 0x%02X\n", checksum_read);
+                if (flags.debug) fprintf(stderr, "  checksum    = 0x%02X\n", checksum_read);
 
                 if (checksum_calculated != checksum_read) {
                 	cerr << "Error: checksum does not match. ";
 
-                	if(debug)
+                	if(flags.debug)
                 		fprintf(stderr, "Calculated = 0x%02X, Read = 0x%02X\n", checksum_calculated, checksum_read);
                 	return 0;
                 }
 
-                if (debug)
+                if (flags.debug)
                 	cerr << "\n";
 
                 if (record_type == 0x01)
@@ -184,7 +184,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
 
     fclose(fp);
 	
-    if(debug)
+    if(flags.debug)
 		cerr << "DONE! " << filled_locations << " memory locations read." << endl;
 
     return filled_locations;
@@ -209,7 +209,7 @@ void write_inhx(memory *mem, char *outfile, uint32_t offset)
 		return;
 	}
 
-	if(debug)
+	if(flags.debug)
 		cerr << "Writing hex file...";
 
 	/* Write the program memory bytes */
@@ -265,6 +265,6 @@ void write_inhx(memory *mem, char *outfile, uint32_t offset)
 
 	fprintf(fp, ":00000001FF\n");
 	fclose(fp);
-	if(debug)
+	if(flags.debug)
 		cerr << "DONE!" << endl;
 }

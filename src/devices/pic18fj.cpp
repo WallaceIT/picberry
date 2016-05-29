@@ -235,7 +235,7 @@ uint8_t pic18fj::blank_check(void)
 	uint16_t addr, data;
 	uint8_t ret = 0;
 
-	if(!debug) cerr << "[ 0%]";
+	if(!flags.debug) cerr << "[ 0%]";
 	lcounter = 0;
 
 	goto_mem_location(0x000000);
@@ -259,7 +259,7 @@ uint8_t pic18fj::blank_check(void)
 		}
 	}
 
-	if(!debug) cerr << "\b\b\b\b\b";
+	if(!flags.debug) cerr << "\b\b\b\b\b";
 
 	return ret;
 
@@ -279,7 +279,7 @@ void pic18fj::bulk_erase(void)
 	GPIO_CLR(pic_data);	                /* Hold PGD low until erase completes. */
 	delay_us(DELAY_P11);
 	delay_us(DELAY_P10);
-	if(client) fprintf(stdout, "@FIN");
+	if(flags.client) fprintf(stdout, "@FIN");
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -287,8 +287,8 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 {
 	uint16_t addr, data = 0x0000;
 
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	lcounter = 0;
 
 	/* Read Memory */
@@ -302,7 +302,7 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 		send_cmd(COMM_TABLE_READ_POST_INC);
 		data = ( read_data() << 8 ) | (data & 0x00FF);
 
-		if (debug)
+		if (flags.debug)
 			fprintf(stderr, "  addr = 0x%04X  data = 0x%04X\n", addr*2, data);
 
 		if (data != 0xFFFF) {
@@ -311,16 +311,16 @@ void pic18fj::read(char *outfile, uint32_t start, uint32_t count)
 		}
 
 		if(lcounter != addr*100/mem.code_memory_size){
-			if(client)
+			if(flags.client)
 				fprintf(stderr,"RED@%2d\n", (addr*100/mem.code_memory_size));
-			if(!debug)
+			if(!flags.debug)
 				fprintf(stderr,"\b\b\b\b%2d%%]", addr*100/mem.code_memory_size);
 			lcounter = addr*100/mem.code_memory_size;
 		}
 	}
 
-	if(!debug) cerr << "\b\b\b\b\b";
-	if(client) fprintf(stdout, "@FIN");
+	if(!flags.debug) cerr << "\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@FIN");
 	write_inhx(&mem, outfile);
 }
 
@@ -336,8 +336,8 @@ void pic18fj::write(char *infile)
 
 	bulk_erase();
 
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	lcounter = 0;
 
 	send_cmd(COMM_CORE_INSTRUCTION);
@@ -346,18 +346,18 @@ void pic18fj::write(char *infile)
 	for (addr = 0; addr < mem.code_memory_size; addr += 32){        /* address in WORDS (2 Bytes) */
 
 		goto_mem_location(2*addr);
-		if (debug)
+		if (flags.debug)
 			fprintf(stderr, "Go to address 0x%08X \n", addr);
 
 		for(i=0; i<31; i++){		                        /* write the first 62 bytes */
 			if (mem.filled[addr+i]) {
-				if (debug)
+				if (flags.debug)
 					fprintf(stderr, "  Writing 0x%04X to address 0x%06X \n", mem.location[addr + i], (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(mem.location[addr+i]);
 			}
 			else {
-				if (debug)
+				if (flags.debug)
 					fprintf(stderr, "  Writing 0xFFFF to address 0x%06X \n", (addr+i)*2 );
 				send_cmd(COMM_TABLE_WRITE_POST_INC_2);
 				write_data(0xFFFF);			/* write 0xFFFF in empty locations */
@@ -366,13 +366,13 @@ void pic18fj::write(char *infile)
 
 		/* write the last 2 bytes and start programming */
 		if (mem.filled[addr+31]) {
-			if (debug)
+			if (flags.debug)
 				fprintf(stderr, "  Writing 0x%04X to address 0x%06X and then start programming...\n", mem.location[addr+31], (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(mem.location[addr+31]);
 		}
 		else {
-			if (debug)
+			if (flags.debug)
 				fprintf(stderr, "  Writing 0xFFFF to address 0x%06X and then start programming...\n", (addr+31)*2);
 			send_cmd(COMM_TABLE_WRITE_STARTP);
 			write_data(0xFFFF);			         /* write 0xFFFF in empty locations */
@@ -394,20 +394,20 @@ void pic18fj::write(char *infile)
 		/* end of Programming Sequence */
 		if(lcounter != addr*100/filled_locations){
 			lcounter = addr*100/filled_locations;
-			if(client)
+			if(flags.client)
 				fprintf(stdout,"@%03d", lcounter);
-			if(!debug)
+			if(!flags.debug)
 				fprintf(stderr,"\b\b\b\b\b[%2d%%]", lcounter);
 		}
 	};
 
-	if(!debug) cerr << "\b\b\b\b\b\b";
-	if(client) fprintf(stdout, "@100");
+	if(!flags.debug) cerr << "\b\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@100");
 
 	/* Verify Code Memory and Configuration Word */
-	if(verify){
-		if(!debug) cerr << "[ 0%]";
-		if(client) fprintf(stdout, "@000");
+	if(!flags.noverify){
+		if(!flags.debug) cerr << "[ 0%]";
+		if(flags.client) fprintf(stdout, "@000");
 		lcounter = 0;
 
 		goto_mem_location(0x000000);
@@ -419,7 +419,7 @@ void pic18fj::write(char *infile)
 			send_cmd(COMM_TABLE_READ_POST_INC);
 			data = ( read_data() << 8 ) | ( data & 0xFF );
 
-			if (debug)
+			if (flags.debug)
 				fprintf(stderr, "addr = 0x%06X:  pic = 0x%04X, file = 0x%04X\n",
 						addr*2, data, (mem.filled[addr]) ? (mem.location[addr]) : 0xFFFF);
 
@@ -430,18 +430,18 @@ void pic18fj::write(char *infile)
 			}
 			if(lcounter != addr*100/filled_locations){
 				lcounter = addr*100/filled_locations;
-				if(client)
+				if(flags.client)
 					fprintf(stdout,"@%03d", lcounter);
-				if(!debug)
+				if(!flags.debug)
 					fprintf(stderr,"\b\b\b\b\b[%2d%%]", lcounter);
 			}
 		}
 
-		if(!debug) cerr << "\b\b\b\b\b";
-		if(client) fprintf(stdout, "@FIN");
+		if(!flags.debug) cerr << "\b\b\b\b\b";
+		if(flags.client) fprintf(stdout, "@FIN");
 	}
 	else{
-		if(client) fprintf(stdout, "@FIN");
+		if(flags.client) fprintf(stdout, "@FIN");
 	}
 
 }

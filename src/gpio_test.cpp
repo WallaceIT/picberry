@@ -45,7 +45,7 @@ volatile uint32_t   *gpio;
 void setup_io(void);
 void close_io(void);
 
-bool debug=0;
+struct flags_struct flags;
 
 int tested_gpio = DEFAULT_PIC_CLK;
 char tested_gpio_port = 0;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     while ((opt = getopt_long(argc, argv, "Dg:",long_options, &option_index)) != -1) {
         switch (opt) {
         case 'D':
-            debug = 1;
+            flags.debug = 1;
             break;
         case 'g':
             pins = optarg;

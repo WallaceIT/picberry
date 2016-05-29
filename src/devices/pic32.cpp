@@ -436,7 +436,7 @@ void pic32::code_protected_bulk_erase(void){
 	do{
 		statusVal = XferData(8, MCHP_STATUS);
 	} while((statusVal & 0x0C) != 0x08);
-	if(client) fprintf(stdout, "@FIN");
+	if(flags.client) fprintf(stdout, "@FIN");
 }
 
 bool pic32::enter_serial_exec_mode(void){
@@ -649,7 +649,7 @@ void pic32::bulk_erase(void){
 	if(rxp!=PE_CMD_CHIP_ERASE)
 		fprintf(stderr, "___ERR___ %08x", rxp);
 
-	if(client) fprintf(stdout, "@FIN");
+	if(flags.client) fprintf(stdout, "@FIN");
 }
 
 uint8_t pic32::blank_check(void){
@@ -672,8 +672,8 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 	uint8_t area = PROGRAM_AREA;
 	uint32_t addr=0, startaddr = 0, stopaddr = 0;
 		
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	
 	do{
 		switch(area){
@@ -718,9 +718,9 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		
 				if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
 					counter = read_locations*100/(mem.code_memory_size*2+bootsize);
-					if(client)
+					if(flags.client)
 						fprintf(stdout,"@%03d", counter);
-					if(!debug)
+					if(!flags.debug)
 						fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 				}	
 			}
@@ -729,8 +729,8 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		area++;
 	} while(area <= BOOT_AREA);
 
-	if(!debug) cerr << "\b\b\b\b\b";
-	if(client) fprintf(stdout, "@FIN");
+	if(!flags.debug) cerr << "\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@FIN");
 	write_inhx(&mem, outfile, PROGRAM_FLASH_BASEADDR);
 };
 
@@ -748,8 +748,8 @@ void pic32::write(char *infile){
 	
 	bulk_erase();
 	
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	
 	do{
 
@@ -808,9 +808,9 @@ void pic32::write(char *infile){
 				
 			if(counter != programmed_locations*100/filled_locations){
 				counter = programmed_locations*100/filled_locations;
-				if(client)
+				if(flags.client)
 					fprintf(stdout,"@%03d", counter);
-				if(!debug)
+				if(!flags.debug)
 					fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 			}
 		}
@@ -818,8 +818,8 @@ void pic32::write(char *infile){
 		area++;
 	} while(area<=BOOT_AREA);
 	
-	if(!debug) cerr << "\b\b\b\b\b\b";
-	if(client) fprintf(stdout, "@FIN");
+	if(!flags.debug) cerr << "\b\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@FIN");
 	
 	// Checksum verification
 	// Program area checksum
@@ -846,11 +846,11 @@ void pic32::write(char *infile){
 		fprintf(stderr, "___CHECKSUM ERROR!___\n");
 		fprintf(stderr, "DEVICE CHECKSUM: %08x\n", device_checksum);
 		fprintf(stderr, "CALCULATED CHECKSUM: %08x\n", calculated_checksum);
-		if(client) fprintf(stdout, "@ERR");
+		if(flags.client) fprintf(stdout, "@ERR");
 		return;
 	}
 	
-	if(client) fprintf(stdout, "@FIN");
+	if(flags.client) fprintf(stdout, "@FIN");
 };
 void pic32::dump_configuration_registers(void){
 	SendCommand(ETAP_FASTDATA);

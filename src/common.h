@@ -45,7 +45,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset=0);
 void write_inhx(memory *mem, char *outfile, uint32_t offset=0);
 
 /* Runtime Functions */
-void pic_reset(void);
+void pic_reset(bool silent = false);
 
 /* main functions */
 void usage(void);
@@ -55,9 +55,13 @@ uint8_t receive_file(int sock, char * filename);
 
 extern volatile uint32_t *gpio;
 extern int pic_clk, pic_data, pic_mclr;
-extern bool debug;
-extern bool verify;
-extern bool client;
-extern bool log;
+
+struct flags_struct {
+   int debug = 0;
+   int client = 0;
+   int noverify = 0;
+};
+
+extern struct flags_struct flags;
 
 #endif /* COMMON_H_ */

@@ -49,7 +49,7 @@ int                 mem_fd;
 void                *gpio_map;
 volatile uint32_t   *gpio;
 
-bool debug=0, verify=1, client=0, log=0;
+struct flags_struct flags;
 
 int pic_clk  = DEFAULT_PIC_CLK;
 int pic_data = DEFAULT_PIC_DATA;
@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
 	int opt, function = 0;
     char *infile = 0;
     char *outfile = 0;
+    bool log = false;
     char *logfile = 0;
     char *pins = 0;
     char *family = 0;
@@ -93,78 +94,76 @@ int main(int argc, char *argv[])
     uint8_t retval = 0;
 
     static struct option long_options[] = {
-            {"help", 0, 0, 'h'},
-            {"server", 1, 0, 'S'},
-            {"debug", 0, 0, 'D'},
-            {"noverify", 0, 0, 'n'},
-            {"gpio", 1, 0, 'g'},
-            {"family", 1, 0, 'f'},
-            {"read", 1, 0, 'r'},
-            {"write", 0, 0, 'w'},
-            {"erase", 0, 0, 'e'},
-            {"blankcheck", 0, 0, 'b'},
-            {"registerdump", 0, 0, 'd'},
-            {"reset", 0, 0, 'R'},
-            {"log", 1, 0, 'l'}
+            {"help",        no_argument,       0,           'h'},
+            {"server",      required_argument, 0,           'S'},
+            {"gpio",        required_argument, 0,           'g'},
+            {"family",      required_argument, 0,           'f'},
+            {"read",        required_argument, 0,           'r'},
+            {"write",       no_argument,       0,           'w'},
+            {"erase",       no_argument,       0,           'e'},
+            {"blankcheck",  no_argument,       0,           'b'},
+            {"regdump",     no_argument,       0,           'd'},
+            {"reset",       no_argument,       0,           'R'},
+            {"log",         required_argument, 0,           'l'},
+            {"debug",       no_argument,       &flags.debug,      1},
+            {"noverify",    no_argument,       &flags.noverify,   1},
+            {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "hS:Dl:ng:c:s:f:r:w:ebdR",
+    while ((opt = getopt_long(argc, argv, "hS:l:g:c:s:f:r:w:ebdR",
                               long_options, &option_index)) != -1) {
         switch (opt) {
-        case 'h':
-            usage();
-            exit(0);
-            break;
-        case 'S':
-            server_port = atoi(optarg);
-            function = FXN_SERVER;
-            break;
-        case 'D':
-            debug = 1;
-            break;
-        case 'n':
-            verify = 0;
-            break;
-        case 'f':
-            family = optarg;
-            break;
-        case 'g':
-            pins = optarg;
-            break;
-        case 'l':
-            log = 1;
-            logfile = optarg;
-            break;
-        case 'r':
-            outfile = optarg;
-            function |= FXN_READ;
-            break;
-        case 'c':
-            count = atoi(optarg);
-            break;
-        case 's':
-            start = atoi(optarg);
-            break;
-        case 'w':
-            infile = optarg;
-            function |= FXN_WRITE;
-            break;
-        case 'e':
-            function |= FXN_ERASE;
-            break;
-        case 'b':
-            function |= FXN_BLANKCHEK;
-            break;
-        case 'd':
-            function |= FXN_REGDUMP;
-            break;
-        case 'R':
-            function = FXN_RESET;
-            break;
-        default:
-            cout << endl;
-            usage();
-            exit(1);
+            case 0:
+                break;
+            case 'h':
+                usage();
+                exit(0);
+                break;
+            case 'S':
+                flags.client = 1;
+                server_port = atoi(optarg);
+                function = FXN_SERVER;
+                break;
+            case 'f':
+                family = optarg;
+                break;
+            case 'g':
+                pins = optarg;
+                break;
+            case 'l':
+                log = true;
+                logfile = optarg;
+                break;
+            case 'r':
+                outfile = optarg;
+                function |= FXN_READ;
+                break;
+            case 'c':
+                count = atoi(optarg);
+                break;
+            case 's':
+                start = atoi(optarg);
+                break;
+            case 'w':
+                infile = optarg;
+                function |= FXN_WRITE;
+                break;
+            case 'e':
+                function |= FXN_ERASE;
+                break;
+            case 'b':
+                function |= FXN_BLANKCHEK;
+                break;
+            case 'd':
+                function |= FXN_REGDUMP;
+                break;
+            case 'R':
+                function = FXN_RESET;
+                break;
+            default:
+                cout << endl;
+                usage();
+                exit(1);
         }
     }
 
@@ -206,7 +205,7 @@ int main(int argc, char *argv[])
         }
     }
     
-    if(debug){
+    if(flags.debug){
         cout << "PGC <=> pin " << pic_clk_port << (pic_clk&0xFF)
              << endl;
         cout << "PGD <=> pin " << pic_data_port << (pic_data&0xFF)
@@ -216,15 +215,13 @@ int main(int argc, char *argv[])
     }
 
     /* Setup gpio pointer for direct register access */
-    if(debug) cout << "Setting up I/O..." << endl;
+    if(flags.debug) cout << "Setting up I/O..." << endl;
     setup_io();
 
     if(function == FXN_RESET)
         pic_reset();
-    else if(function == FXN_SERVER){
-        client = 1;
+    else if(function == FXN_SERVER)
         server_mode(server_port);
-    }
     else{
 
         Pic *pic = new dspic33f();
@@ -384,13 +381,13 @@ void close_io(void)
 }
 
 /* reset the device */
-void pic_reset(void)
+void pic_reset(bool silent)
 {
     GPIO_OUT(pic_mclr);
 
     GPIO_CLR(pic_mclr);     // remove VDD from MCLR pin
     delay_us(1500);
-    if(!client && !log){
+    if(!flags.client && !silent){
         cout << "Press any key to release the reset...";
         fgetc(stdin);
         cout << endl;
@@ -462,7 +459,7 @@ void server_mode(int port){
     char current_family = 0;
     
     /* Set picberry to work in "client" mode */
-    client = 1;
+    flags.client = 1;
 
     /* Create the TCP socket */
     if ((serversock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
@@ -508,7 +505,7 @@ void server_mode(int port){
             cerr << "Failed to receive initial bytes from client";
         /* Send bytes and check for more incoming data in loop */
         while (received > 0) {
-            if(debug){
+            if(flags.debug){
                 buffer[received] = '\0';
                 cerr << "Command received: " << buffer;   
             }
@@ -591,7 +588,7 @@ void server_mode(int port){
                     break;
                 case SRV_DEV_ID:
                     if(program_mode){
-                        if(debug) cerr << "[CMD] Read Device ID" << endl;
+                        if(flags.debug) cerr << "[CMD] Read Device ID" << endl;
                         if(pic -> read_device_id())
                             fprintf(stdout,
                                     "{\"DevName\" : \"%s\", \"DevID\" : \"0x%08X\", \"DevRev\" : \"0x%08X\"}",

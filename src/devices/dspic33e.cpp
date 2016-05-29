@@ -285,7 +285,7 @@ uint8_t dspic33e::blank_check(void)
 	uint16_t data[8], raw_data[6];
 	uint8_t ret = 0;
 
-	if(!debug) cerr << "[ 0%]";
+	if(!flags.debug) cerr << "[ 0%]";
 
 	counter=0;
 
@@ -391,11 +391,11 @@ uint8_t dspic33e::blank_check(void)
 		}
 
 		for(i=0; i<8; i++){
-			if(debug)			
+			if(flags.debug)			
 				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
 								(addr+i), data[i]);
 			if ((i%2 == 0 && data[i] != 0xFFFF) || (i%2 == 1 && data[i] != 0x00FF)) {
-				if(!debug) cerr << "\b\b\b\b\b";
+				if(!flags.debug) cerr << "\b\b\b\b\b";
 				ret = 1;
 				addr = mem.code_memory_size + 10;
 				break;
@@ -404,7 +404,7 @@ uint8_t dspic33e::blank_check(void)
 	}
 
 	if(addr <= (mem.code_memory_size + 8)){
-		if(!debug) cerr << "\b\b\b\b\b";
+		if(!flags.debug) cerr << "\b\b\b\b\b";
 		ret = 0;
 	};
 
@@ -466,7 +466,7 @@ void dspic33e::bulk_erase(void)
 		send_nop();
 	} while((nvmcon & 0x8000) == 0x8000);
 	
-	if(client) fprintf(stdout, "@FIN");
+	if(flags.client) fprintf(stdout, "@FIN");
 }
 
 /* Read PIC memory and write the contents to a .hex file */
@@ -484,8 +484,8 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 				count, startaddr, stopaddr);
 	}
 
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	counter=0;
 
 	/* exit reset vector */
@@ -586,7 +586,7 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 		data[6] = raw_data[5];
 
 		for(i=0; i<8; i++){
-			if (debug)
+			if (flags.debug)
 				fprintf(stderr, "\n addr = 0x%06X data = 0x%04X",
 						(addr+i), data[i]);
 
@@ -603,9 +603,9 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 
 		if(counter != addr*100/stopaddr){
 			counter = addr*100/stopaddr;
-			if(client)
+			if(flags.client)
 				fprintf(stdout,"@%03d", counter);
-			if(!debug)
+			if(!flags.debug)
 				fprintf(stderr,"\b\b\b\b\b[%2d%%]", counter);
 		}
 
@@ -650,8 +650,8 @@ void dspic33e::read(char *outfile, uint32_t start, uint32_t count)
 	send_nop();
 	send_nop();
 
-	if(!debug) cerr << "\b\b\b\b\b";
-	if(client) fprintf(stdout, "@FIN");
+	if(!flags.debug) cerr << "\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@FIN");
 	write_inhx(&mem, outfile);
 }
 
@@ -684,8 +684,8 @@ void dspic33e::write(char *infile)
 	send_nop();
 
 	/* WRITE CODE MEMORY */
-	if(!debug) cerr << "[ 0%]";
-	if(client) fprintf(stdout, "@000");
+	if(!flags.debug) cerr << "[ 0%]";
+	if(flags.client) fprintf(stdout, "@000");
 	counter=0;
 
 	for (addr = 0; addr < mem.code_memory_size; ){
@@ -715,7 +715,7 @@ void dspic33e::write(char *infile)
 			for(j=0;j<8;j++){
 				if (mem.filled[addr+j]) data[j] = mem.location[addr+j];
 				else data[j] = 0xFFFF;
-				if(debug)
+				if(flags.debug)
 					fprintf(stderr,"\n  Writing 0x%04X to address 0x%06X ", data[j], addr+j );
 			}
 
@@ -793,21 +793,21 @@ void dspic33e::write(char *infile)
 		} while((nvmcon & 0x8000) == 0x8000);
 
 		if(counter != addr*100/filled_locations){
-			if(client)
+			if(flags.client)
 				fprintf(stdout,"@%03d", (addr*100/(filled_locations+0x100)));
-			if(!debug)
+			if(!flags.debug)
 				fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 			counter = addr*100/filled_locations;
 		}
 	};
 
-	if(!debug) cerr << "\b\b\b\b\b\b";
-	if(client) fprintf(stdout, "@100");
+	if(!flags.debug) cerr << "\b\b\b\b\b\b";
+	if(flags.client) fprintf(stdout, "@100");
 
 	delay_us(100000);
 
 	/* WRITE CONFIGURATION REGISTERS */
-	if(debug)
+	if(flags.debug)
 		cerr << endl << "Writing Configuration registers..." << endl;
 
 	send_nop();
@@ -873,24 +873,24 @@ void dspic33e::write(char *infile)
 				send_nop();
 			} while((nvmcon & 0x8000) == 0x8000);
 
-			if(debug)
+			if(flags.debug)
 				fprintf(stderr,"\n - %s set to 0x%01x",
 						regname[i], mem.location[addr]);
 		}
-		else if(debug)
+		else if(flags.debug)
 				fprintf(stderr,"\n - %s left unchanged", regname[i]);
 
 		addr = addr+2;
 	}
 
-	if(debug) cerr << endl;
+	if(flags.debug) cerr << endl;
 
 	delay_us(100000);
 
 	/* VERIFY CODE MEMORY */
-	if(verify){
-		if(!debug) cerr << "[ 0%]";
-		if(client) fprintf(stdout, "@000");
+	if(!flags.noverify){
+		if(!flags.debug) cerr << "[ 0%]";
+		if(flags.client) fprintf(stdout, "@000");
 		counter = 0;
 
 		send_nop();
@@ -994,7 +994,7 @@ void dspic33e::write(char *infile)
 			data[6] = raw_data[5];
 
 			for(i=0; i<8; i++){
-				if (debug)
+				if (flags.debug)
 					fprintf(stderr, "\n addr = 0x%06X data = 0x%04X", (addr+i), data[i]);
 
 				if(mem.filled[addr+i] && data[i] != mem.location[addr+i]){
@@ -1006,19 +1006,19 @@ void dspic33e::write(char *infile)
 			}
 
 			if(counter != addr*100/filled_locations){
-				if(client)
+				if(flags.client)
 					fprintf(stdout,"@%03d", (addr*100/(filled_locations+0x100)));
-				if(!debug)
+				if(!flags.debug)
 					fprintf(stderr,"\b\b\b\b\b[%2d%%]", addr*100/(filled_locations+0x100));
 				counter = addr*100/filled_locations;
 			}
 		}
 
-		if(!debug) cerr << "\b\b\b\b\b";
-		if(client) fprintf(stdout, "@FIN");
+		if(!flags.debug) cerr << "\b\b\b\b\b";
+		if(flags.client) fprintf(stdout, "@FIN");
 	}
 	else{
-		if(client) fprintf(stdout, "@FIN");
+		if(flags.client) fprintf(stdout, "@FIN");
 	}
 
 }
