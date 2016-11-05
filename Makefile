@@ -9,6 +9,7 @@ PREFIX = /usr
 BINDIR = $(PREFIX)/bin
 SRCDIR = src
 BUILDDIR = build
+MKDIR = mkdir -p
 
 GCCVERSION := $(shell expr `gcc -dumpversion | cut -f2 -d.` \>= 7)
 
@@ -28,9 +29,12 @@ am335x: CFLAGS += -DBOARD_AM335X
 default:
 	 @echo "Please specify a target with 'make raspberrypi', 'make a10' or 'make am335x'."
 
-raspberrypi: picberry gpio_test
-a10: picberry gpio_test
-am335x: picberry gpio_test
+raspberrypi: prepare picberry
+a10: prepare picberry
+am335x: prepare picberry gpio_test
+
+prepare:
+	$(MKDIR) $(BUILDDIR)/devices
 
 picberry:  $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o  
 	$(CC) $(CFLAGS) -o $(TARGET) $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o

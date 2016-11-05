@@ -1,6 +1,7 @@
 *.o
 *~
 picberry
+gpio_test
 *.hex
 build*
 .vscode
