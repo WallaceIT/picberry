@@ -248,6 +248,15 @@ int main(int argc, char *argv[])
             pic = new pic32(SF_PIC32MK);   
         else{
             cerr << "ERROR: PIC family not correctly chosen." << endl;
+            cerr << "Available families:" << endl
+                 << "- dspic33e" << endl
+                 << "- pic24fj" << endl
+                 << "- pic18fj" << endl
+                 << "- pic32mx1" << endl
+                 << "- pic32mx2" << endl
+                 << "- pic32mx3" << endl
+                 << "- pic32mz" << endl
+                 << "- pic32mk" << endl;
             goto clean;
         }
 
@@ -421,7 +430,12 @@ void usage(void)
 "       dspic33e    " << endl <<
 "       dspic33f    " << endl <<
 "       pic18fj     " << endl <<
-"       pic24fj     " << endl;
+"       pic24fj     " << endl <<
+"       pic32mx1    " << endl <<
+"       pic32mx2    " << endl <<
+"       pic32mx3    " << endl <<
+"       pic32mz     " << endl <<
+"       pic32mk     " << endl;
 }
 
 #define BUFFSIZE 32
