@@ -11,7 +11,10 @@ You should have received a copy of the GNU General Public License along with thi
 # Overview
 
 picberry is a PIC programmer using GPIOs that doesn't require additional programming hardware, working on the [Raspberry Pi](https://www.raspberrypi.org/), Allwinner A10-based boards (such as the [Cubieboard](http://cubieboard.org/)) and TI AM335x-based boards (such as the [Beaglebone Black](https://beagleboard.org/black) or the [AM3359 ICEv2](http://www.ti.com/tool/tmdsice3359)).
-It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H, PIC24FJ and PIC18FxxJxx families, but only some PICs have been tested.
+It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H, PIC24FJ, PIC18FxxJxx, PIC32MX, PIC32MZ and (still not released) PIC32MK families, but only some PICs have been tested.
+
+*NOTE on PIC32 support:* while software support is complete, device informations have been filled only for PIC32MX250F128B.
+Users are encouraged to add devices (inside *pic32.h*) as needed.
 
 # Building and Installing picberry
 
@@ -58,7 +61,7 @@ Programming Options
 	-D                turn ON debug
 	-g PGC,PGD,MCLR   GPIO selection in form PORT:NUM, default if not present
 	-S port			  server mode, listening on given port                
-	-f family		  PIC family (dspic33e, dspic33f or 18fj)
+	-f family		  PIC family (dspic33e, dspic33f, pic18fj, pic32mx1, pic32mx2, pic32mx3, pic32mz)
 	-i file           input file
 	-o file           output file (default: ofile.hex)
 
@@ -121,6 +124,7 @@ To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
 - [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
+- [PIC32 Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/60001145S.pdf)
 
 # Licensing
 
