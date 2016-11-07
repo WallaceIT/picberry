@@ -11,12 +11,6 @@ SRCDIR = src
 BUILDDIR = build
 MKDIR = mkdir -p
 
-GCCVERSION := $(shell expr `gcc -dumpversion | cut -f2 -d.` \>= 7)
-
-ifeq "$(GCCVERSION)" "0"
-    CC = g++-4.7
-endif
-
 DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/dspic33f.o \
 		  $(BUILDDIR)/devices/pic18fj.o \

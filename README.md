@@ -18,11 +18,7 @@ Users are encouraged to add devices (inside *pic32.h*) as needed.
 
 # Building and Installing picberry
 
-picberry is written in C++11, so it requires at least g++ version 4.7.
-
-On Raspian/Debian install it entering:
-
-	sudo apt-get install g++-4.7
+picberry is written using C++11 features, so it requires at least g++ version 4.7.
 
 To build picberry, after cloning the repository, launch
 
