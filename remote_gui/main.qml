@@ -243,6 +243,7 @@ ApplicationWindow {
                                 ListElement { text: "pic32mx3"; value: "6" }
                                 ListElement { text: "pic32mz"; value: "7" }
                                 ListElement { text: "pic32mk"; value: "8" }
+                                ListElement { text: "pic24fjxxxga0xx"; value: "9" }
                             }
                         }
                         Item {width: 20}

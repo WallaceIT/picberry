@@ -117,7 +117,7 @@ for the Allwinner A10:
 	PGC  <-> PB15
 	PGD  <-> PB17
 	MCLR <-> PB12
-	
+
 for AM335x:
 
 	PGC  <-> GPIO12
@@ -136,6 +136,7 @@ To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 - [dsPIC33E/PIC24E Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70619B.pdf)
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
 - [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
+- [PIC24FJXXGA0XX Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39768d.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
 - [PIC32 Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/60001145S.pdf)
 
