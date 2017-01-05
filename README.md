@@ -24,7 +24,11 @@ To build picberry, after cloning the repository, launch
 
 	make raspberrypi
 
-for Raspberry Pi target or
+for Raspberry Pi v1 target or
+
+	make raspberrypi2
+
+for Raspberry Pi v2 or v3 target or
 
 	make a10
 
