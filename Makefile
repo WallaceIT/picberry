@@ -2,7 +2,7 @@
 # picberry Makefile
 # 
 #
-CC = g++
+CC = $(CROSS_COMPILE)g++
 CFLAGS = -Wall -O2 -s -std=c++11
 TARGET = picberry
 PREFIX = /usr
@@ -19,12 +19,14 @@ DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 
 a10: CFLAGS += -DBOARD_A10
 raspberrypi: CFLAGS += -DBOARD_RPI
+raspberrypi2: CFLAGS += -DBOARD_RPI2
 am335x: CFLAGS += -DBOARD_AM335X
 
 default:
 	 @echo "Please specify a target with 'make raspberrypi', 'make a10' or 'make am335x'."
 
 raspberrypi: prepare picberry
+raspberrypi2: prepare picberry
 a10: prepare picberry
 am335x: prepare picberry gpio_test
 

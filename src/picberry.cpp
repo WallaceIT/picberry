@@ -419,15 +419,15 @@ void usage(void)
 "       -h                print help" << endl <<
 "       -S port           server mode, listening on given port" << endl <<
 "       -l [file]         redirect the output to log file(s)" << endl <<
-"       -D                turn ON debug" << endl <<
 "       -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)" << endl <<
 "       -f family         PIC family [default: dspic33f]" << endl <<
 "       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<
 "       -w file.hex       bulk erase and write chip" << endl <<
-"       -n                skip memory verification after writing" << endl <<
 "       -e                bulk erase chip" << endl <<
 "       -b                blank check of the chip" << endl <<
 "       -d                read configuration registers" << endl << endl <<
+"       --noverify        skip memory verification after writing" << endl <<
+"       --debug           turn ON debug" << endl <<
 "   Runtime Options" << endl << endl <<
 "       -R                reset" << endl << endl << endl <<
 "   Available PIC families:" << endl << endl <<

@@ -25,6 +25,8 @@
 #include "hosts/a10.h"
 #elif defined(BOARD_RPI)
 #include "hosts/rpi.h"
+#elif defined(BOARD_RPI2)
+#include "hosts/rpi2.h"
 #elif defined(BOARD_AM335X)
 #include "hosts/am335x.h"
 #endif
@@ -33,7 +35,7 @@
 
 using namespace std;
 
-#define VERSION "0.1"
+#define VERSION "0.2"
 
 /* Low-level functions */
 void delay_us(unsigned int howLong);
