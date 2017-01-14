@@ -36,6 +36,13 @@ Support for additional boards and processors can be easily added, providing the 
 	#define GPIO_SET(g)		// set gpio g as high
 	#define GPIO_CLR(g)		// set gpio g as low
 	#define GPIO_LEV(g)		// read level of gpio g
+	
+	/* default GPIO <-> PIC connections */
+	#define DEFAULT_PIC_CLK     // default gpio for PGC line
+	#define DEFAULT_PIC_DATA    // default gpio for PGD line
+	#define DEFAULT_PIC_MCLR    // default gpio for MCLR line
+
+A build rule inside the Makefile for the specific platform has to be added too.
 
 ## Building and Installing picberry
 
