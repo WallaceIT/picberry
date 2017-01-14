@@ -36,12 +36,12 @@ Support for additional boards and processors can be easily added, providing the 
 	#define GPIO_SET(g)		// set gpio g as high
 	#define GPIO_CLR(g)		// set gpio g as low
 	#define GPIO_LEV(g)		// read level of gpio g
-
+	
 	/* default GPIO <-> PIC connections */
-	#define DEFAULT_PIC_CLK		// default gpio for PGC line
-	#define DEFAULT_PIC_DATA	// default gpio for PGD line
-	#define DEFAULT_PIC_MCLR	// default gpio for MCLR line
-    
+	#define DEFAULT_PIC_CLK     // default gpio for PGC line
+	#define DEFAULT_PIC_DATA    // default gpio for PGD line
+	#define DEFAULT_PIC_MCLR    // default gpio for MCLR line
+
 A build rule inside the Makefile for the specific platform has to be added too.
 
 ## Building and Installing picberry
@@ -117,7 +117,7 @@ for the Allwinner A10:
 	PGC  <-> PB15
 	PGD  <-> PB17
 	MCLR <-> PB12
-	
+
 for AM335x:
 
 	PGC  <-> GPIO12
@@ -136,6 +136,7 @@ To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 - [dsPIC33E/PIC24E Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70619B.pdf)
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
 - [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
+- [PIC24FJXXGA0XX Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39768d.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
 - [PIC32 Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/60001145S.pdf)
 
