@@ -99,7 +99,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 	cerr << "Error: cannot read address." << endl;
                 	return 0;
                 }
-                        
+
                 nread = sscanf(&line[7], "%2hhx", &record_type);
                 if (nread != 1) {
                 	cerr << "Error: cannot read record type." << endl;
@@ -130,8 +130,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 	checksum_calculated += (base_address >> 8) & 0xFF;
                 	checksum_calculated += base_address & 0xFF;
                 	i = 1;
-                }
-                else
+                } else {
                 	for (i = 0; i < byte_count/2; i++) {
                 		nread = sscanf(&line[9+4*i], "%4hx", &data);
                 		if (nread != 1) {
@@ -147,15 +146,36 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
                 		extended_address = ( ((uint32_t)base_address << 16) | address);
                 		if (flags.debug)
                 			fprintf(stderr, " @0x%08X\n", extended_address/2+i);
-						
+
                 		mem->location[extended_address/2 + i - offset/2] = data;
                 		mem->filled[extended_address/2 + i - offset/2] = 1;
                 		filled_locations++;
                 	}
+                  if (byte_count % 2) {
+                    nread = sscanf(&line[9+4*i], "%2hx", &data);
+                		if (nread != 1) {
+                			cerr << "Error: cannot read data." << endl;
+                			return 0;
+                		}
+                		if (flags.debug) fprintf(stderr, "  data        = 0x%04X", data);
+                		checksum_calculated += data & 0xFF;
+
+                		extended_address = ( ((uint32_t)base_address << 16) | address);
+                		if (flags.debug)
+                			fprintf(stderr, " @0x%08X\n", extended_address/2+i);
+
+                		mem->location[extended_address/2 + i - offset/2] = data;
+                		mem->filled[extended_address/2 + i - offset/2] = 1;
+                		filled_locations++;
+                  }
+                }
 
                 checksum_calculated = (checksum_calculated ^ 0xFF) + 1;
 
-                nread = sscanf(&line[9+4*i], "%2hhx", &checksum_read);
+                if (byte_count % 2)
+                  nread = sscanf(&line[9+4*i+2], "%2hhx", &checksum_read);
+                else
+                  nread = sscanf(&line[9+4*i], "%2hhx", &checksum_read);
                 if (nread != 1) {
                 	cerr << "Error: cannot read checksum." << endl;
                 	return 0;
@@ -183,7 +203,7 @@ unsigned int read_inhx(char *infile, memory *mem, uint32_t offset)
 	}
 
     fclose(fp);
-	
+
     if(flags.debug)
 		cerr << "DONE! " << filled_locations << " memory locations read." << endl;
 
