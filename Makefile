@@ -13,6 +13,7 @@ MKDIR = mkdir -p
 
 DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/dspic33f.o \
+		  $(BUILDDIR)/devices/pic10f322.o \
 		  $(BUILDDIR)/devices/pic18fj.o \
 		  $(BUILDDIR)/devices/pic24fjxxxga0xx.o \
 		  $(BUILDDIR)/devices/pic32.o $(BUILDDIR)/devices/pic32_pe.o
