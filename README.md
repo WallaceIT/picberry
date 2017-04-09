@@ -18,7 +18,7 @@ It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H, PIC24FJ, PIC18FxxJxx, 
 ### Supported hosts
 
  Currently _picberry_ has support for the following host boards/processors:
- 
+
 - the [Raspberry Pi](https://www.raspberrypi.org/)
 - Allwinner A10-based boards (like the [Cubieboard](http://cubieboard.org/))
 - TI AM335x-based boards (like the [Beaglebone Black](https://beagleboard.org/black) or the [AM3359 ICEv2](http://www.ti.com/tool/tmdsice3359)).
@@ -41,7 +41,7 @@ Support for additional boards and processors can be easily added, providing the 
 	#define DEFAULT_PIC_CLK		// default gpio for PGC line
 	#define DEFAULT_PIC_DATA	// default gpio for PGD line
 	#define DEFAULT_PIC_MCLR	// default gpio for MCLR line
-    
+
 A build rule inside the Makefile for the specific platform has to be added too.
 
 ## Building and Installing picberry
@@ -81,7 +81,7 @@ Programming Options
 	-e                bulk erase chip
 	-b                blank check of the chip
 	-d                read configuration registers
-    
+
     --noverify        skip memory verification after programming
     --debug           turn ON debug
 
@@ -137,6 +137,7 @@ To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 - [dsPIC33F/PIC24H Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/70152H.pdf)
 - [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
 - [PIC24FJXXGA0XX Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39768d.pdf)
+- [PIC24FJXXXDA1/DA2/GB2/GA3/GC0 Families Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39970e.pdf)
 - [PIC10(L)F320/322 Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/41572D.pdf)
 - [PIC12(L)F1822/PIC16(L)F182X Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/41390D.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)

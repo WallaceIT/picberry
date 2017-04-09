@@ -1,6 +1,6 @@
 #
 # picberry Makefile
-# 
+#
 #
 CC = $(CROSS_COMPILE)g++
 CFLAGS = -Wall -O2 -s -std=c++11
@@ -16,6 +16,7 @@ DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/pic10f322.o \
 		  $(BUILDDIR)/devices/pic18fj.o \
 		  $(BUILDDIR)/devices/pic24fjxxxga0xx.o \
+			$(BUILDDIR)/devices/pic24fjxxxga3xx.o \
 		  $(BUILDDIR)/devices/pic32.o $(BUILDDIR)/devices/pic32_pe.o
 
 a10: CFLAGS += -DBOARD_A10
@@ -34,7 +35,7 @@ am335x: prepare picberry gpio_test
 prepare:
 	$(MKDIR) $(BUILDDIR)/devices
 
-picberry:  $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o  
+picberry:  $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o
 	$(CC) $(CFLAGS) -o $(TARGET) $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o
 
 gpio_test:  $(BUILDDIR)/gpio_test.o
@@ -42,7 +43,7 @@ gpio_test:  $(BUILDDIR)/gpio_test.o
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
-	
+
 $(BUILDDIR)/devices/%.o: $(SRCDIR)/devices/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -52,5 +53,5 @@ install:
 uninstall:
 	$(RM) $(BINDIR)/$(TARGET)
 
-clean: 
+clean:
 	$(RM) $(TARGET) *_test *.o $(BUILDDIR)/*.o $(BUILDDIR)/devices/*.o
