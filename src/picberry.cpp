@@ -46,7 +46,10 @@
 #include "devices/pic18fj.h"
 #include "devices/pic24fjxxxga0xx.h"
 #include "devices/pic24fjxxxga3xx.h"
+#include "devices/pic24fjxxga1xx_gb0xx.h"
 #include "devices/pic32.h"
+#include "devices/pic24fjxxxga1_gb1.h"
+#include "devices/pic24fxxka1xx.h"
 
 int                 mem_fd;
 void                *gpio_map;
@@ -245,7 +248,17 @@ int main(int argc, char *argv[])
             pic = new pic24fjxxxga0xx();
         else if(strcmp(family,"pic24fjxxxga3xx") == 0)
             pic = new pic24fjxxxga3xx();
-        else if(strcmp(family,"pic32mx1") == 0)
+        else if(strcmp(family,"pic24fjxxga1xx") == 0)
+            pic = new pic24fjxxga1xx_gb0xx();
+        else if(strcmp(family,"pic24fjxxgb0xx") == 0)
+            pic = new pic24fjxxga1xx_gb0xx();
+        else if(strcmp(family,"pic24fjxxxga1xx") == 0)
+            pic = new pic24fjxxxga1_gb1();
+        else if(strcmp(family,"pic24fjxxxgb1xx") == 0)
+            pic = new pic24fjxxxga1_gb1();
+	else if(strcmp(family,"pic24fxxka1xx") == 0)
+            pic = new pic24fxxka1xx();
+	else if(strcmp(family,"pic32mx1") == 0)
             pic = new pic32(SF_PIC32MX1);
         else if(strcmp(family,"pic32mx2") == 0)
             pic = new pic32(SF_PIC32MX2);
@@ -262,7 +275,12 @@ int main(int argc, char *argv[])
                  << "- pic24fj" << endl
                  << "- pic24fjxxxga0xx" << endl
                  << "- pic24fjxxxga3xx" << endl
-                 << "- pic10f322" << endl
+                 << "- pic24fjxxga1xx" << endl
+                 << "- pic24fjxxgb0xx" << endl 
+                 << "- pic24fjxxxga1xx" << endl
+                 << "- pic24fjxxxgb1xx" << endl
+		 << "- pic24fxxka1xx" << endl 
+		 << "- pic10f322" << endl
                  << "- pic18fj" << endl
                  << "- pic32mx1" << endl
                  << "- pic32mx2" << endl
@@ -446,6 +464,10 @@ void usage(void)
 "       pic24fj     " << endl <<
 "       pic24fjxxxga0xx " << endl <<
 "       pic24fjxxxga3xx " << endl <<
+"       pic24fjxxga1xx " << endl <<
+"       pic24fjxxgb0xx " << endl <<
+"       pic24fjxxxga1xx " << endl <<
+"       pic24fjxxxgb1xx " << endl <<
 "       pic32mx1    " << endl <<
 "       pic32mx2    " << endl <<
 "       pic32mx3    " << endl <<
