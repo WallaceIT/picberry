@@ -118,11 +118,11 @@ for the Allwinner A10:
 	PGD  <-> PB17
 	MCLR <-> PB12
 
-for AM335x:
+for BeagleBone Black (AM335x):
 
-	PGC  <-> GPIO12
-	PGD  <-> GPIO13
-	MCLR <-> GPIO40
+	PGC  <-> GPIO60 (P9.12)
+	PGD  <-> GPIO49 (P9.23)
+	MCLR <-> GPIO48 (P9.15)
 
 
 ### Remote GUI
