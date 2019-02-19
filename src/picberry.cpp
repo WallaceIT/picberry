@@ -115,6 +115,7 @@ int main(int argc, char *argv[])
             {"noverify",    no_argument,       &flags.noverify,     1},
             {"boot-only",   no_argument,       &flags.boot_only,    1},
             {"program-only",no_argument,       &flags.program_only, 1},
+	    {"fulldump",    no_argument,       &flags.fulldump,     1},
             {0, 0, 0, 0}
     };
 
@@ -454,6 +455,7 @@ void usage(void)
 "       -d                read configuration registers" << endl << endl <<
 "       --noverify        skip memory verification after writing" << endl <<
 "       --debug           turn ON debug" << endl <<
+"       --fulldump        don't detect empty sections, make complete dump (PIC32)" << endl <<
 "   Runtime Options" << endl << endl <<
 "       -R                reset" << endl << endl << endl <<
 "   Available PIC families:" << endl << endl <<

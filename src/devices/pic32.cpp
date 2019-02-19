@@ -669,7 +669,7 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 				for(i=0; i < cur_blocksize; i+=4){
 					int word_addr = (addr + i) / 2;
 					rxp = GetPEResponse();
-					if(rxp != 0xFFFFFFFF) {
+					if(flags.fulldump || (rxp != 0xFFFFFFFF)) {
 						mem.location[word_addr] = rxp & 0x0000FFFF;
 						mem.filled[word_addr] = 1;
 						mem.location[word_addr+1] = rxp >> 16;
