@@ -617,6 +617,7 @@ uint8_t pic32::blank_check(void){
 void pic32::read(char *outfile, uint32_t start, uint32_t count){
 	uint32_t rxp = 0;
 	uint32_t blocksize = 0;	// expressed in bytes
+	const uint32_t max_blocksize = 0x0000FFFF*4;
 	const uint32_t programsize = mem.code_memory_size*2;
 	uint32_t counter = 0, read_locations = 0, i = 0;
 	uint8_t area = PROGRAM_AREA;
@@ -635,10 +636,10 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		switch(area){
 			case PROGRAM_AREA:	// Read Program Flash (0x1D000000 to 0x1D000000+CodeMem)
 				startaddr = 0;
-				stopaddr = (mem.code_memory_size*2)-1;
-				blocksize = 0x0000FFFF*4;
-				if((mem.code_memory_size*2) < 0x0000FFFF*4)
-					blocksize = (mem.code_memory_size*2);
+				stopaddr = programsize - 1;
+				blocksize = max_blocksize;
+				if(programsize < max_blocksize)
+					blocksize = programsize;
 				break;
 			case BOOT_AREA:	// Read bootflash+configuration
 				startaddr = BOOTFLASH_OFFSET;
