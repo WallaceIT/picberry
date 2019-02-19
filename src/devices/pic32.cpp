@@ -636,7 +636,7 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		switch(area){
 			case PROGRAM_AREA:	// Read Program Flash (0x1D000000 to 0x1D000000+CodeMem)
 				startaddr = 0;
-				stopaddr = programsize - 1;
+				stopaddr = programsize;
 				blocksize = max_blocksize;
 				if(programsize < max_blocksize)
 					blocksize = programsize;
@@ -653,10 +653,12 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		if(((area == PROGRAM_AREA) & !flags.boot_only) || ((area == BOOT_AREA) & !flags.program_only)){
 		
 			// addr is espressed in BYTES
-			for(addr=startaddr; addr<stopaddr; addr+=blocksize){
+			uint32_t cur_blocksize;
+			for(addr=startaddr; addr<stopaddr; addr+=cur_blocksize){
+				cur_blocksize = std::min(stopaddr - addr , blocksize);
 				
 				SendCommand(ETAP_FASTDATA);
-				XferFastData4P(PE_CMD_READ | (blocksize/4));
+				XferFastData4P(PE_CMD_READ | (cur_blocksize/4));
 				XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
 				
 				rxp = GetPEResponse();
@@ -664,13 +666,14 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 					fprintf(stderr, "___ERR___: %08x\n", rxp);
 				
 				// i is expressed in BYTES
-				for(i=0; i < blocksize; i+=4){
+				for(i=0; i < cur_blocksize; i+=4){
+					int word_addr = (addr + i) / 2;
 					rxp = GetPEResponse();
-					if(rxp != 0xFFFFFFFF){
-						mem.location[(addr+i)/2] = rxp & 0x0000FFFF;
-						mem.filled[(addr+i)/2] = 1;
-						mem.location[(addr+i)/2+1] = rxp >> 16;
-						mem.filled[(addr+i)/2+1] = 1;
+					if(rxp != 0xFFFFFFFF) {
+						mem.location[word_addr] = rxp & 0x0000FFFF;
+						mem.filled[word_addr] = 1;
+						mem.location[word_addr+1] = rxp >> 16;
+						mem.filled[word_addr+1] = 1;
 					}
 					
 					read_locations += 4;
