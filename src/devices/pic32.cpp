@@ -617,12 +617,19 @@ uint8_t pic32::blank_check(void){
 void pic32::read(char *outfile, uint32_t start, uint32_t count){
 	uint32_t rxp = 0;
 	uint32_t blocksize = 0;	// expressed in bytes
+	const uint32_t programsize = mem.code_memory_size*2;
 	uint32_t counter = 0, read_locations = 0, i = 0;
 	uint8_t area = PROGRAM_AREA;
 	uint32_t addr=0, startaddr = 0, stopaddr = 0;
 		
 	if(!flags.debug) cerr << "[ 0%]";
 	if(flags.client) fprintf(stdout, "@000");
+
+	uint32_t total_to_read = 0;
+	if (!flags.program_only)
+		total_to_read += bootsize;
+	if (!flags.boot_only)
+		total_to_read += programsize;
 	
 	do{
 		switch(area){
@@ -666,9 +673,10 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 					}
 					
 					read_locations += 4;
-			
-					if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
-						counter = read_locations*100/(mem.code_memory_size*2+bootsize);
+
+					uint32_t cur_counter = read_locations*100/total_to_read;
+					if(counter != cur_counter){
+						counter = cur_counter;
 						if(flags.client)
 							fprintf(stdout,"@%03d", counter);
 						if(!flags.debug)
