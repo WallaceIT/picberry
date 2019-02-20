@@ -617,21 +617,29 @@ uint8_t pic32::blank_check(void){
 void pic32::read(char *outfile, uint32_t start, uint32_t count){
 	uint32_t rxp = 0;
 	uint32_t blocksize = 0;	// expressed in bytes
+	const uint32_t max_blocksize = 0x0000FFFF*4;
+	const uint32_t programsize = mem.code_memory_size*2;
 	uint32_t counter = 0, read_locations = 0, i = 0;
 	uint8_t area = PROGRAM_AREA;
 	uint32_t addr=0, startaddr = 0, stopaddr = 0;
 		
 	if(!flags.debug) cerr << "[ 0%]";
 	if(flags.client) fprintf(stdout, "@000");
+
+	uint32_t total_to_read = 0;
+	if (!flags.program_only)
+		total_to_read += bootsize;
+	if (!flags.boot_only)
+		total_to_read += programsize;
 	
 	do{
 		switch(area){
 			case PROGRAM_AREA:	// Read Program Flash (0x1D000000 to 0x1D000000+CodeMem)
 				startaddr = 0;
-				stopaddr = (mem.code_memory_size*2)-1;
-				blocksize = 0x0000FFFF*4;
-				if((mem.code_memory_size*2) < 0x0000FFFF*4)
-					blocksize = (mem.code_memory_size*2);
+				stopaddr = programsize;
+				blocksize = max_blocksize;
+				if(programsize < max_blocksize)
+					blocksize = programsize;
 				break;
 			case BOOT_AREA:	// Read bootflash+configuration
 				startaddr = BOOTFLASH_OFFSET;
@@ -645,10 +653,12 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 		if(((area == PROGRAM_AREA) & !flags.boot_only) || ((area == BOOT_AREA) & !flags.program_only)){
 		
 			// addr is espressed in BYTES
-			for(addr=startaddr; addr<stopaddr; addr+=blocksize){
+			uint32_t cur_blocksize;
+			for(addr=startaddr; addr<stopaddr; addr+=cur_blocksize){
+				cur_blocksize = std::min(stopaddr - addr , blocksize);
 				
 				SendCommand(ETAP_FASTDATA);
-				XferFastData4P(PE_CMD_READ | (blocksize/4));
+				XferFastData4P(PE_CMD_READ | (cur_blocksize/4));
 				XferFastData4P(PROGRAM_FLASH_BASEADDR+addr);
 				
 				rxp = GetPEResponse();
@@ -656,19 +666,21 @@ void pic32::read(char *outfile, uint32_t start, uint32_t count){
 					fprintf(stderr, "___ERR___: %08x\n", rxp);
 				
 				// i is expressed in BYTES
-				for(i=0; i < blocksize; i+=4){
+				for(i=0; i < cur_blocksize; i+=4){
+					int word_addr = (addr + i) / 2;
 					rxp = GetPEResponse();
-					if(rxp != 0xFFFFFFFF){
-						mem.location[(addr+i)/2] = rxp & 0x0000FFFF;
-						mem.filled[(addr+i)/2] = 1;
-						mem.location[(addr+i)/2+1] = rxp >> 16;
-						mem.filled[(addr+i)/2+1] = 1;
+					if(flags.fulldump || (rxp != 0xFFFFFFFF)) {
+						mem.location[word_addr] = rxp & 0x0000FFFF;
+						mem.filled[word_addr] = 1;
+						mem.location[word_addr+1] = rxp >> 16;
+						mem.filled[word_addr+1] = 1;
 					}
 					
 					read_locations += 4;
-			
-					if(counter != read_locations*100/(mem.code_memory_size*2+bootsize)){
-						counter = read_locations*100/(mem.code_memory_size*2+bootsize);
+
+					uint32_t cur_counter = read_locations*100/total_to_read;
+					if(counter != cur_counter){
+						counter = cur_counter;
 						if(flags.client)
 							fprintf(stdout,"@%03d", counter);
 						if(!flags.debug)

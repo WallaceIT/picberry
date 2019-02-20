@@ -45,6 +45,6 @@
 #define GPIO_LEV(g)   (*(gpio+OFFSET(g)+GPIO_IN_REG) >> (g%32)) & 0x01
 
 /* default GPIO <-> PIC connections */
-#define DEFAULT_PIC_CLK    12   /* PGC - Output - gpio1_8 */
-#define DEFAULT_PIC_DATA   13   /* PGD - I/O - gpio1_9 */
-#define DEFAULT_PIC_MCLR   40   /* MCLR - Output - gpio0_13 */
+#define DEFAULT_PIC_CLK    60   /* PGC  - Output - gpio1_28 */
+#define DEFAULT_PIC_DATA   49   /* PGD  - I/O    - gpio1_17 */
+#define DEFAULT_PIC_MCLR   48   /* MCLR - Output - gpio1_16 */
