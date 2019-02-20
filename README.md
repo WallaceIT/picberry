@@ -69,33 +69,33 @@ For cross-compilation, given that you have the required cross toolchain in you P
 
 Programming Options
 
-	-h                print help
-	-g PGC,PGD,MCLR   GPIO selection in form PORT:NUM, default if not present
-	-S port			  server mode, listening on given port                
-	-f family		  PIC family (dspic33e, dspic33f, pic18fj, pic32mx1, pic32mx2, pic32mx3, pic32mz)
-	-i file           input file
-	-o file           output file (default: ofile.hex)
-
-	-r                read chip
-	-w                bulk erase and write chip
-	-e                bulk erase chip
-	-b                blank check of the chip
-	-d                read configuration registers
-
-    --noverify        skip memory verification after programming
-    --debug           turn ON debug
+	--help,             -h                print help
+	--server=port,      -S port           server mode, listening on given port
+	--log=[file],       -l [file]         redirect the output to log file(s)
+	--gpio=PGC,PGD,MCLR -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)
+	--family=[family],  -f [family]       PIC family [default: dspic33f]
+	--read=[file.hex],  -r [file.hex]     read chip to file [defaults to ofile.hex]
+	--write=file.hex,   -w file.hex       bulk erase and write chip
+	--erase,            -e                bulk erase chip
+	--blankcheck,       -b                blank check of the chip
+	--regdump,          -d                read configuration registers
+	--noverify                            skip memory verification after writing
+	--debug                               turn ON debug
+	--fulldump                            don't detect empty sections, make complete dump (PIC32)
+	--program-only                        read/write only program section (PIC32)
+	--boot-only                           read/write only boot section (PIC32)
 
 Runtime Options
 
-       -R                reset
+	-reset, -R                           reset
 
 For Example, to connect the PIC to RPi GPIOs 11 (PGC), 9 (PGD), 22 (MCLR) and write on a dsPIC33FJ128GP802 the file fw.hex:
 
-	picberry -w -g 11,9,22 -f dspic33f -i fw.hex
+	picberry -w fw.hex -g 11,9,22 -f dspic33f
 
 To connect the PIC to A10 GPIOs B15 (PGC), B17 (PGD), I15 (MCLR):
 
-	picberry -w -g B:15,B:17,I:15 -f dspic33f -i fw.hex
+	picberry -w fw.hex -g B:15,B:17,I:15 -f dspic33f
 
 ### Programming Hardware
 
