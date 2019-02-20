@@ -441,40 +441,50 @@ void pic_reset(bool silent)
 void usage(void)
 {
     cout <<
-"Usage: picberry [options]" << endl << endl <<
-"   Programming Options" << endl << endl <<
-"       -h                print help" << endl <<
-"       -S port           server mode, listening on given port" << endl <<
-"       -l [file]         redirect the output to log file(s)" << endl <<
-"       -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)" << endl <<
-"       -f family         PIC family [default: dspic33f]" << endl <<
-"       -r [file.hex]     read chip to file [defaults to ofile.hex]" << endl <<
-"       -w file.hex       bulk erase and write chip" << endl <<
-"       -e                bulk erase chip" << endl <<
-"       -b                blank check of the chip" << endl <<
-"       -d                read configuration registers" << endl << endl <<
-"       --noverify        skip memory verification after writing" << endl <<
-"       --debug           turn ON debug" << endl <<
-"       --fulldump        don't detect empty sections, make complete dump (PIC32)" << endl <<
-"   Runtime Options" << endl << endl <<
-"       -R                reset" << endl << endl << endl <<
-"   Available PIC families:" << endl << endl <<
-"       dspic33e    " << endl <<
-"       dspic33f    " << endl <<
-"       pic10f322   " << endl <<
-"       pic18fj     " << endl <<
-"       pic24fj     " << endl <<
-"       pic24fjxxxga0xx " << endl <<
-"       pic24fjxxxga3xx " << endl <<
-"       pic24fjxxga1xx " << endl <<
-"       pic24fjxxgb0xx " << endl <<
-"       pic24fjxxxga1xx " << endl <<
-"       pic24fjxxxgb1xx " << endl <<
-"       pic32mx1    " << endl <<
-"       pic32mx2    " << endl <<
-"       pic32mx3    " << endl <<
-"       pic32mz     " << endl <<
-"       pic32mk     " << endl;
+            "Usage: picberry [options] \n"
+            "\n"
+            "   Programming Options \n"
+            "\n"
+            "       --help,             -h                print help\n"
+            "       --server=port,      -S port           server mode, listening on given port\n"
+            "       --log=[file],       -l [file]         redirect the output to log file(s)\n"
+            "       --gpio=PGC,PGD,MCLR -g PGC,PGD,MCLR   GPIO selection in form [PORT:]NUM (optional)\n"
+            "       --family=[family],  -f [family]       PIC family [default: dspic33f]\n"
+            "       --read=[file.hex],  -r [file.hex]     read chip to file [defaults to ofile.hex]\n"
+            "       --write=file.hex,   -w file.hex       bulk erase and write chip\n"
+            "       --erase,            -e                bulk erase chip\n"
+            "       --blankcheck,       -b                blank check of the chip\n"
+            "       --regdump,          -d                read configuration registers\n"
+            "       --noverify                            skip memory verification after writing\n"
+            "       --debug                               turn ON debug\n"
+            "       --fulldump                            don't detect empty sections, make complete dump (PIC32)\n"
+            "       --program-only                        read/write only program section (PIC32)\n"
+            "       --boot-only                           read/write only boot section (PIC32)\n"
+            "\n"
+            "\n"
+            "   Runtime Options\n"
+            "\n"
+            "       --reset, -R                           reset\n"
+            "\n"
+            "\n"
+            "   Available PIC families:\n"
+            "\n"
+            "       dspic33e    \n"
+            "       dspic33f    \n"
+            "       pic10f322   \n"
+            "       pic18fj     \n"
+            "       pic24fj     \n"
+            "       pic24fjxxxga0xx \n"
+            "       pic24fjxxxga3xx \n"
+            "       pic24fjxxga1xx \n"
+            "       pic24fjxxgb0xx \n"
+            "       pic24fjxxxga1xx \n"
+            "       pic24fjxxxgb1xx \n"
+            "       pic32mx1    \n"
+            "       pic32mx2    \n"
+            "       pic32mx3    \n"
+            "       pic32mz     \n"
+            "       pic32mk     \n";
 }
 
 #define BUFFSIZE 32
