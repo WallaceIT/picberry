@@ -138,6 +138,7 @@ To compile it, just launch `qmake` and then `make` in the *remote_gui* folder.
 - [PIC24FJ Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30010057d.pdf)
 - [PIC24FJXXGA0XX Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39768d.pdf)
 - [PIC24FJXXXDA1/DA2/GB2/GA3/GC0 Families Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39970e.pdf)
+- [PIC24FJXXXGA2/GB2 Families Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/30000510f.pdf)
 - [PIC10(L)F320/322 Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/41572D.pdf)
 - [PIC12(L)F1822/PIC16(L)F182X Flash Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/41390D.pdf)
 - [PIC18F2XJXX/4XJXX Family Programming Specification](http://ww1.microchip.com/downloads/en/DeviceDoc/39687e.pdf)
