@@ -19,6 +19,7 @@ DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/pic24fjxxxga3xx.o \
 		  $(BUILDDIR)/devices/pic24fjxxga1xx_gb0xx.o \
 		  $(BUILDDIR)/devices/pic24fjxxxga1_gb1.o \
+		  $(BUILDDIR)/devices/pic24fjxxxga2_gb2.o \
 		  $(BUILDDIR)/devices/pic24fxxka1xx.o\
 		  $(BUILDDIR)/devices/pic32.o $(BUILDDIR)/devices/pic32_pe.o
 

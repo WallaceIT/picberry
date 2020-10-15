@@ -49,6 +49,7 @@
 #include "devices/pic24fjxxga1xx_gb0xx.h"
 #include "devices/pic32.h"
 #include "devices/pic24fjxxxga1_gb1.h"
+#include "devices/pic24fjxxxga2_gb2.h"
 #include "devices/pic24fxxka1xx.h"
 
 int                 mem_fd;
@@ -255,8 +256,12 @@ int main(int argc, char *argv[])
             pic = new pic24fjxxga1xx_gb0xx();
         else if(strcmp(family,"pic24fjxxxga1xx") == 0)
             pic = new pic24fjxxxga1_gb1();
+        else if(strcmp(family,"pic24fjxxxga2xx") == 0)
+            pic = new pic24fjxxxga2_gb2();
         else if(strcmp(family,"pic24fjxxxgb1xx") == 0)
             pic = new pic24fjxxxga1_gb1();
+        else if(strcmp(family,"pic24fjxxxgb2xx") == 0)
+            pic = new pic24fjxxxga2_gb2();
 	else if(strcmp(family,"pic24fxxka1xx") == 0)
             pic = new pic24fxxka1xx();
 	else if(strcmp(family,"pic32mx1") == 0)
@@ -279,7 +284,9 @@ int main(int argc, char *argv[])
                  << "- pic24fjxxga1xx" << endl
                  << "- pic24fjxxgb0xx" << endl 
                  << "- pic24fjxxxga1xx" << endl
+                 << "- pic24fjxxxga2xx" << endl
                  << "- pic24fjxxxgb1xx" << endl
+                 << "- pic24fjxxxgb2xx" << endl
 		 << "- pic24fxxka1xx" << endl 
 		 << "- pic10f322" << endl
                  << "- pic18fj" << endl
@@ -297,9 +304,9 @@ int main(int argc, char *argv[])
 
         if(pic -> read_device_id()){  // Read devide ID and setup memory
         
-            fprintf(stdout,"Device Name: %s\n", pic -> name);
-		    fprintf(stdout,"Device ID: 0x%08x\n", pic ->device_id);
-            fprintf(stderr,"Revision: 0x%08x\n", pic ->device_rev);
+            fprintf(stdout,"Device Name: %s\n", pic->name);
+		    fprintf(stdout,"Device ID: 0x%08x\n", pic->device_id);
+            fprintf(stderr,"Revision: 0x%08x\n", pic->device_rev);
 
             switch (function){
                 case FXN_NULL:          // no function selected, exit
@@ -479,7 +486,9 @@ void usage(void)
             "       pic24fjxxga1xx \n"
             "       pic24fjxxgb0xx \n"
             "       pic24fjxxxga1xx \n"
+            "       pic24fjxxxga2xx \n"
             "       pic24fjxxxgb1xx \n"
+            "       pic24fjxxxgb2xx \n"
             "       pic32mx1    \n"
             "       pic32mx2    \n"
             "       pic32mx3    \n"
