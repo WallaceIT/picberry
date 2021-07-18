@@ -27,6 +27,8 @@
 #include "hosts/rpi.h"
 #elif defined(BOARD_RPI2)
 #include "hosts/rpi2.h"
+#elif defined(BOARD_RPI4B)
+#include "hosts/rpi4b.h"
 #elif defined(BOARD_AM335X)
 #include "hosts/am335x.h"
 #endif

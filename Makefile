@@ -26,6 +26,7 @@ DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 a10: CFLAGS += -DBOARD_A10
 raspberrypi: CFLAGS += -DBOARD_RPI
 raspberrypi2: CFLAGS += -DBOARD_RPI2
+rpi4b: CFLAGS += -DBOARD_RPI4B
 am335x: CFLAGS += -DBOARD_AM335X
 
 default:
@@ -33,6 +34,7 @@ default:
 
 raspberrypi: prepare picberry
 raspberrypi2: prepare picberry
+rpi4b: prepare picberry
 a10: prepare picberry
 am335x: prepare picberry gpio_test
 
