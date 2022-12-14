@@ -54,6 +54,7 @@ To build picberry launch `make TARGET`, where _TARGET_ can be one of the followi
 | ------------- | ------------------------------------------ |
 | raspberrypi   | Raspberry Pi v1 or Zero                    |
 | raspberrypi2  | Raspberry Pi v2 or v3                      |
+| raspberrypi4  | Raspberry Pi 4A or 4B or CM4
 | am335x        | Boards based on TI AM335x (BeagleBone)     |
 | a10           | Boards based on Allwinner A10 (Cubieboard) |
 
