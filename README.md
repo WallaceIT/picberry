@@ -22,6 +22,7 @@ It theorically supports dsPIC33E/PIC24E, dsPIC33F/PIC24H, PIC24FJ, PIC18FxxJxx, 
 - the [Raspberry Pi](https://www.raspberrypi.org/)
 - Allwinner A10-based boards (like the [Cubieboard](http://cubieboard.org/))
 - TI AM335x-based boards (like the [Beaglebone Black](https://beagleboard.org/black) or the [AM3359 ICEv2](http://www.ti.com/tool/tmdsice3359)).
+- RK3399 based boards (like Radxa's [RockPi4(A/B/B+/C)](https://rockpi.org/rockpi4))
 
 Support for additional boards and processors can be easily added, providing the following macro in a header file inside the _hosts_ folder:
 
@@ -54,15 +55,37 @@ To build picberry launch `make TARGET`, where _TARGET_ can be one of the followi
 | ------------- | ------------------------------------------ |
 | raspberrypi   | Raspberry Pi v1 or Zero                    |
 | raspberrypi2  | Raspberry Pi v2 or v3                      |
-| raspberrypi4  | Raspberry Pi 4A or 4B or CM4
+| raspberrypi4  | Raspberry Pi 4A or 4B or CM4               |
 | am335x        | Boards based on TI AM335x (BeagleBone)     |
 | a10           | Boards based on Allwinner A10 (Cubieboard) |
+| rk3399        | Boards based on Rockchip RK3399 (RockPi)   |
 
 Then launch `sudo make install` to install it to /usr/bin.
 
 To change destination prefix use PREFIX=, e.g. `sudo make install PREFIX=/usr/local`.
 
 For cross-compilation, given that you have the required cross toolchain in you PATH, simply export the `CROSS_COMPILE` variable before launching `make`, e.g. `CROSS_COMPILE=arm-linux-gnueabihf- make raspberrypi2`.
+
+### Note about rk3399 target
+
+To build for rk3399-based boards, you must install the static library for [wiringX](https://github.com/wiringX/wiringX).
+
+```bash
+sudo apt-get update && sudo apt-get install -y build-essential cmake
+BRANCH=rk3399 # use this branch until it has been merged into master, at which point use 'master'
+cd ~/tmp
+wget https://github.com/wiringX/wiringX/archive/refs/heads/${BRANCH}.zip
+unzip ${BRANCH}.zip
+cd wiringX-${BRANCH}
+mkdir build
+cd build
+cmake ..
+make
+cpack -G DEB
+sudo dpkg -i libwiringx*.deb
+```
+
+After running these commands, you should have the static library `libwiringx.a` available at `/usr/lib/`.
 
 ## Using picberry
 

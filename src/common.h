@@ -31,6 +31,8 @@
 #include "hosts/rpi4.h"
 #elif defined(BOARD_AM335X)
 #include "hosts/am335x.h"
+#elif defined(BOARD_RK3399)
+#include "hosts/rk3399.h"
 #endif
 
 #include "devices/device.h"
