@@ -10,6 +10,7 @@ BINDIR = $(PREFIX)/bin
 SRCDIR = src
 BUILDDIR = build
 MKDIR = mkdir -p
+LDFLAGS =
 
 DEVICES = $(BUILDDIR)/devices/dspic33e.o \
 		  $(BUILDDIR)/devices/dspic33f.o \
@@ -28,21 +29,24 @@ raspberrypi: CFLAGS += -DBOARD_RPI
 raspberrypi2: CFLAGS += -DBOARD_RPI2
 raspberrypi4: CFLAGS += -DBOARD_RPI4
 am335x: CFLAGS += -DBOARD_AM335X
+rk3399: CFLAGS += -DBOARD_RK3399
+rk3399: LDFLAGS += -L/usr/lib -l:libwiringx.a
 
 default:
-	 @echo "Please specify a target with 'make raspberrypi', 'make a10' or 'make am335x'."
+	 @echo "Please specify a target with 'make raspberrypi', 'make a10', 'make am335x', or 'make rk3399'."
 
 raspberrypi: prepare picberry
 raspberrypi2: prepare picberry
 raspberrypi4: prepare picberry
 a10: prepare picberry
+rk3399: prepare picberry
 am335x: prepare picberry gpio_test
 
 prepare:
 	$(MKDIR) $(BUILDDIR)/devices
 
 picberry:  $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o
-	$(CC) $(CFLAGS) -o $(TARGET) $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o
+	$(CC) $(CFLAGS) -o $(TARGET) $(BUILDDIR)/inhx.o $(DEVICES) $(BUILDDIR)/picberry.o $(LDFLAGS)
 
 gpio_test:  $(BUILDDIR)/gpio_test.o
 	$(CC) $(CFLAGS) -o gpio_test $(BUILDDIR)/gpio_test.o

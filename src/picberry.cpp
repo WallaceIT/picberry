@@ -52,6 +52,11 @@
 #include "devices/pic24fjxxxga2_gb2.h"
 #include "devices/pic24fxxka1xx.h"
 
+
+#if defined(BOARD_RK3399)
+#include "wiringx.h"
+#endif
+
 int                 mem_fd;
 void                *gpio_map;
 volatile uint32_t   *gpio;
@@ -209,9 +214,15 @@ int main(int argc, char *argv[])
                              << endl;
                         exit(0);
                     }
+#if defined(BOARD_RK3399)
+            pic_clk = (pic_clk_port-'A');
+            pic_data = (pic_data_port-'A');
+            pic_mclr = (pic_mclr_port-'A');
+#else
             pic_clk |= ((pic_clk_port-'A')*PORTOFFSET)<<8;
             pic_data |= ((pic_data_port-'A')*PORTOFFSET)<<8;
             pic_mclr |= ((pic_mclr_port-'A')*PORTOFFSET)<<8;
+#endif
         }
     }
     
@@ -374,6 +385,10 @@ clean:
 /* Set up a memory regions to access GPIO */
 void setup_io(void)
 {
+    
+#if defined(BOARD_RK3399)
+    wiringXSetup(WIRINGX_PLATFORM, NULL);
+#else
     /* open /dev/mem */
     mem_fd = open("/dev/mem", O_RDWR|O_SYNC);
     if (mem_fd == -1) {
@@ -391,6 +406,8 @@ void setup_io(void)
 
     /* Always use volatile pointer! */
     gpio = (volatile uint32_t *) gpio_map;
+
+#endif
         
     GPIO_IN(pic_clk);   // NOTE: MUST use GPIO_IN before GPIO_OUT
     GPIO_OUT(pic_clk);
@@ -408,12 +425,15 @@ void setup_io(void)
 
 /* Release GPIO memory region */
 void close_io(void)
-{
+{       
+    #if defined(BOARD_RK3399)
+        GPIO_IN(pic_mclr);
+    return;
+    #else    
         int ret;
-        
+
         /* MCLR as input, puts the output driver in Hi-Z */
         GPIO_IN(pic_mclr);
-
         /* munmap GPIO */
         ret = munmap(gpio_map, BLOCK_SIZE);
         if (ret == -1) {
@@ -427,6 +447,7 @@ void close_io(void)
             perror("Cannot close /dev/mem");
             exit(1);
         }
+    #endif
 }
 
 /* reset the device */
